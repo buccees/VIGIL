@@ -1,0 +1,1 @@
+Read VIGIL-ARCHITECTURE-SPEC.md first.
