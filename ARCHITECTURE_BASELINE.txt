@@ -1,1 +1,0 @@
-The initial architecture specification is maintained on the architecture/v0.1 branch.
