@@ -2,9 +2,79 @@
 
 **Visual Intelligence & Geographic Information Layer**
 
+> ## VIGIL is a spatial intelligence platform — not simply an application.
+>
+> The long-term goal is for VIGIL to operate as a **system-level spatial intelligence layer inside a headset or other spatial-computing operating environment**, providing shared environmental perception, spatial state, tracking, analysis, prioritization, and information presentation to the user and to authorized applications.
+>
+> The repository is therefore building the **core platform and middleware**, not a conventional standalone app. The current implementation is an incremental foundation toward that system-level deployment target; it is **not yet a complete operating system, headset runtime, or hardware integration**.
+
 VIGIL is an information-first spatial and environmental awareness platform. It is designed to sense, process, correlate, retain, and present information about an environment that a user may not be able to perceive through normal human observation.
 
 VIGIL is intentionally a **presentation and awareness system, not an autonomous action system**. It has no physical appendages or actuators. Its output is information presented to the user on a screen or future visual interface. The user remains responsible for interpreting the information and deciding how to react.
+
+## What We Are Building
+
+VIGIL should ultimately function as a **spatial intelligence substrate for a headset OS or spatial-computing platform**. Instead of every application independently implementing its own perception and environmental model, VIGIL can provide shared system services such as:
+
+- sensor and authorized-data ingestion;
+- environmental observations and detections;
+- persistent track continuity;
+- spatial and temporal fusion;
+- a shared Spatial World Model;
+- spatial search, relationships, zones, and environmental services;
+- historical state and replayable provenance;
+- relevance and priority computation;
+- attention-aware information presentation; and
+- structured information and event interfaces for authorized consumers.
+
+The intended separation is:
+
+```text
+             HEADSET HARDWARE / SENSORS
+                        ↓
+              HEADSET OS / RUNTIME
+                        ↓
+        ┌──────────────────────────────┐
+        │             VIGIL            │
+        │   Spatial Intelligence Layer │
+        │                              │
+        │  Perception                  │
+        │  Tracking                    │
+        │  Spatial / Temporal Fusion   │
+        │  Spatial World Model         │
+        │  Spatial Services            │
+        │  Relevance / Priority       │
+        │  Attention / Presentation    │
+        └──────────────┬───────────────┘
+                       ↓
+          OS / System UI / Applications
+                       ↓
+                      USER
+                       ↓
+             Human Decision / Action
+```
+
+This architecture is deliberately designed so that **hardware, headset OS, presentation technology, and individual applications can evolve independently of the spatial intelligence core**. The current Java/Gradle spatial-core project is the first implementation layer of that larger platform vision.
+
+### Deployment Target vs. Current State
+
+The distinction matters:
+
+| Layer | Current state |
+|---|---|
+| Spatial intelligence architecture | Defined |
+| Observation → Detection → Track | Implemented foundation |
+| Track → World Model | Implemented foundation |
+| Spatial / temporal fusion | Next major implementation layer |
+| Spatial/environmental services | Planned |
+| Relevance / priority | Architecture defined; implementation ahead |
+| Attention-aware presentation | Architecture defined; implementation ahead |
+| Headset sensor integration | Not yet implemented |
+| XR/display runtime integration | Not yet implemented |
+| OS/device integration | Not yet implemented |
+| Complete headset operating environment | Future deployment target |
+
+So the repository should be understood as **platform infrastructure under construction**, rather than as a finished headset application.
 
 ## Core Objective
 
