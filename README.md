@@ -307,7 +307,8 @@ The repository is organized around the architecture rather than around a monolit
 VIGIL/
 ├── docs/
 │   ├── architecture/
-│   │   └── VIGIL-ARCHITECTURE-SPEC.md
+│   │   ├── VIGIL-ARCHITECTURE-SPEC.md
+│   │   └── DOCUMENTATION-RULES.md
 │   └── technical/
 │       └── SPATIAL-WORLD-MODEL.md
 ├── spatial-core/
@@ -334,6 +335,10 @@ The current spatial-core implementation establishes the early perception chain:
 The next architectural step is to integrate persistent tracks into the World Model while preserving the distinction between current world state, perception evidence, and historical track information.
 
 Future work should then build toward spatial fusion, world-state services, relevance and priority, attention-aware presentation, navigation/search/inspection capabilities, environmental analysis, and optional AI-assisted interpretation.
+
+## Documentation Rules
+
+The project-wide terminology and documentation standard is defined in [`docs/architecture/DOCUMENTATION-RULES.md`](docs/architecture/DOCUMENTATION-RULES.md). Technical documentation should remain rigorous while using terminology that accurately describes VIGIL's sensing, perception, spatial computation, environmental modeling, information prioritization, and human-machine presentation capabilities without unnecessarily implying offensive action, weapon control, or autonomous physical intervention.
 
 ## Non-Goals
 
