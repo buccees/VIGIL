@@ -2,7 +2,7 @@
 
 **Project:** VIGIL  
 **Full name:** Visual Intelligence & Geographic Information Layer  
-**Document version:** 0.3  
+**Document version:** 0.4  
 **Status:** Architecture approved for technical design  
 **Audience:** Project developers, reviewers, maintainers, and future contributors
 
@@ -11,6 +11,8 @@
 ## 1. Purpose
 
 VIGIL is an information-first spatial and environmental awareness platform. It combines information from multiple authorized sources into a coherent, time-aware representation of an environment and presents useful information to a human user.
+
+VIGIL also provides a human interaction layer through which users can communicate with the system and receive responses textually and, optionally, verbally.
 
 Possible sources include cameras, GPS/GNSS, compass, IMU, maps, geographic databases, and other authorized sensors or data feeds.
 
@@ -30,8 +32,9 @@ VIGIL shall be:
 - **Time aware** — state, observations, and changes are explicitly time-qualified.
 - **Uncertainty aware** — confidence and uncertainty are preserved rather than hidden.
 - **AI compatible** — AI reasons over structured information instead of owning deterministic spatial truth.
-- **Extensible** — new sensors, perception models, application modes, and displays can be added without redesigning the core.
-- **Secure and authorized** — sensitive sources and data are controlled and auditable.
+- **Human interactive** — users can query, inspect, configure supported presentation behavior, and receive grounded system responses through text and optional voice.
+- **Extensible** — new sensors, perception models, application modes, displays, and interaction providers can be added without redesigning the core.
+- **Secure and authorized** — sensitive sources, credentials, interactions, and data are controlled and auditable.
 - **Testable** — important behavior can be exercised through simulation and recorded data without physical hardware.
 
 ---
@@ -40,7 +43,7 @@ VIGIL shall be:
 
 > **Observation is not the same thing as understanding.**
 
-VIGIL separates source observations, perception, temporal continuity, spatial/temporal fusion, authoritative world state, derived spatial services, relevance and priority, presentation, and optional AI analysis.
+VIGIL separates source observations, perception, temporal continuity, spatial/temporal fusion, authoritative world state, derived spatial services, relevance and priority, presentation, human interaction, and optional AI analysis.
 
 The canonical information path is:
 
@@ -68,6 +71,20 @@ Spatial / Environmental Services
  Human Decision / Action
 ```
 
+Human interaction is a bidirectional interface with the user rather than a physical-action path:
+
+```text
+                 USER
+                ↕   ↕
+             Text  Voice
+                ↕   ↕
+       Human Interaction Layer
+                ↕
+     Structured VIGIL Information
+                ↕
+ World Model / Services / History
+```
+
 World-state changes produce history/events after the state change:
 
 ```text
@@ -78,7 +95,7 @@ World-state change
 
 Tracking is part of the pre-World-Model perception/fusion path. Events are not a perception stage; they describe meaningful changes to established or updated world state.
 
-AI operates as an optional information-analysis and query layer over structured world state, evidence, and history. It is not the authority that determines physical truth or executes physical action.
+AI operates as an optional information-analysis and query layer over structured world state, evidence, history, and conversational context. It is not the authority that determines physical truth, authorization, or physical action.
 
 ---
 
@@ -98,7 +115,8 @@ The architecture describes the complete intended lifecycle even though implement
 10. **Determine relevance and priority** for the user's current context and task.
 11. **Manage attention and presentation** so the most useful information receives appropriate visual salience without discarding lower-priority world state.
 12. **Present information** through a device-independent presentation model.
-13. **User interprets and decides** what to do with the presented information.
+13. **Communicate with the user** through textual and optional verbal interaction channels.
+14. **User interprets and decides** what to do with the presented information.
 
 The implementation shall grow through this lifecycle rather than allowing an incomplete implementation to redefine the architecture.
 
@@ -159,6 +177,49 @@ VIGIL may expose structured information, events, notifications, user-attention r
 This is an **Information & Event Output / Integration layer**, not a physical-action or actuator layer. It exists so VIGIL can communicate useful information to authorized applications, services, user interfaces, or other systems without making VIGIL itself an action system.
 
 Any external consequential action is outside VIGIL's core information/presentation boundary and requires its own authorized control and safety architecture.
+
+### 5.11 Human Interaction / Voice Interface
+
+The Human Interaction layer provides the bidirectional communication channel between VIGIL and its human user.
+
+It supports:
+
+- textual input and output;
+- optional microphone-based speech input;
+- speech recognition and transcript metadata;
+- intent and query interpretation;
+- authorization and session validation;
+- conversational context;
+- textual response generation;
+- optional text-to-speech output;
+- system status and environmental summaries; and
+- grounded answers about current state and history.
+
+The canonical interaction path is:
+
+```text
+Text Input ───────────────┐
+                          ↓
+Microphone → Speech-to-Text → Interaction Request
+                                  ↓
+                         Authorization / Context
+                                  ↓
+                         World Model / Services
+                                  ↓
+                         Grounded Response Text
+                           ↙             ↘
+                     Text Output      Optional TTS
+                                           ↓
+                                       Voice Output
+```
+
+Speech recognition is not identity or authorization. API authentication is not user authorization. Natural-language interpretation is not permission.
+
+VIGIL may describe its current operating condition in conversational language. For example, a "day" or "session" summary may characterize the environment as quiet, active, high-change, sensor-degraded, or unusually busy when those descriptions are grounded in measurable state such as observation volume, track activity, change rate, events, sensor health, and deviation from a defined baseline.
+
+Such summaries do not imply that VIGIL has human feelings or consciousness. Conversational personality is a presentation characteristic; underlying claims remain grounded in system state.
+
+The interaction layer may request information or supported software-level presentation operations, but it does not gain physical-action authority.
 
 ---
 
@@ -246,11 +307,15 @@ VIGIL may process sensitive environmental information. Authentication, authoriza
 
 Only authorized sensors and data sources may be used. Security boundaries apply throughout the data lifecycle, not only at presentation.
 
+Human interaction adds separate security requirements for microphone permissions, user/session identity, API credentials, capability scopes, speech/transcript handling, and conversational history.
+
+Provider API keys and other long-lived service secrets must not be embedded in client-side code or exposed through ordinary logs. Client applications should use protected device credentials or server-mediated/short-lived session credentials where an external provider requires a secret key.
+
 ---
 
 ## 12. AI Boundary
 
-AI consumes structured world state, evidence, and history. It may perform analysis, explanation, correlation, summarization, question answering, uncertainty assessment, or other information-analysis functions.
+AI consumes structured world state, evidence, history, and, where authorized, conversational context. It may perform analysis, explanation, correlation, summarization, question answering, uncertainty assessment, or other information-analysis functions.
 
 AI output should identify supporting evidence, confidence, uncertainty, model/version where applicable, and whether the result is observation, inference, recommendation, or interpretation.
 
@@ -262,9 +327,9 @@ AI must not silently rewrite authoritative world state, bypass authorization, or
 
 The architecture must be testable without specialized hardware. Simulated sensors and recorded data should use the same contracts as practical real sources.
 
-Hardware-specific implementations remain behind interfaces such as pose providers, object detectors, sensor adapters, and display providers.
+Hardware-specific implementations remain behind interfaces such as pose providers, object detectors, sensor adapters, microphone/audio providers, speech-recognition providers, speech-synthesis providers, and display providers.
 
-Simulation should cover moving/static entities, sensor timing and uncertainty, camera conditions, failures, calibration problems, occlusion, areas, and events.
+Simulation should cover moving/static entities, sensor timing and uncertainty, camera conditions, failures, calibration problems, occlusion, areas, events, and human interaction failures.
 
 ---
 
@@ -272,11 +337,11 @@ Simulation should cover moving/static entities, sensor timing and uncertainty, c
 
 Latency is measured from environmental acquisition to useful presentation, not merely frame rate.
 
-Important measurements include sensor acquisition, observation ingestion, perception, detection-to-track association, fusion, World Model update, prioritization, presentation, and end-to-end environment-to-useful-display latency.
+Important measurements include sensor acquisition, observation ingestion, perception, detection-to-track association, fusion, World Model update, prioritization, presentation, speech recognition, intent interpretation, and end-to-end environment-to-useful-response latency.
 
 Observation age and data freshness are first-class information.
 
-The fast path should remain low latency; expensive analysis must not block immediate useful presentation.
+The fast path should remain low latency; expensive analysis or speech synthesis must not block immediate useful presentation.
 
 ---
 
@@ -297,9 +362,11 @@ The implementation sequence is:
 9. Performance and latency instrumentation
 10. Relevance, priority, and attention
 11. Presentation model
-12. Device integration
-13. Simulation, replay, and validation
-14. Application modes and authorized integrations
+12. Human interaction and voice interfaces
+13. Device integration
+14. Simulation, replay, and validation
+15. Application modes and authorized integrations
+16. Optional AI-assisted conversational analysis
 
 Incomplete implementation must not be treated as evidence that an architectural stage does not exist.
 
@@ -314,7 +381,10 @@ VIGIL/
 │   │   ├── VIGIL-ARCHITECTURE-SPEC.md
 │   │   └── DOCUMENTATION-RULES.md
 │   └── technical/
-│       └── SPATIAL-WORLD-MODEL.md
+│       ├── SPATIAL-WORLD-MODEL.md
+│       ├── TRACK-WORLD-MODEL-CONTRACT.md
+│       ├── SPATIAL-TEMPORAL-FUSION-CONTRACT.md
+│       └── HUMAN-INTERACTION-VOICE-CONTRACT.md
 ├── spatial-core/
 ├── perception/
 ├── tracking/
@@ -343,16 +413,26 @@ The approved baseline establishes that:
 6. Relevance and priority control attention, not truth.
 7. Presentation manages human attention without becoming the source of spatial truth.
 8. World-state changes produce events/history after the state change.
-9. AI is an optional information-analysis/query layer over structured state.
+9. AI is an optional information-analysis/query layer over structured state and authorized conversational context.
 10. Information & Event Output / Integration provides authorized external information interfaces without making VIGIL an action/actuation system.
-11. Generic spatial targeting is informational and independent of weapon control.
-12. The full architecture lifecycle is the intended implementation target; code is being built incrementally through it.
-13. Security, authorization, privacy, provenance, uncertainty, time, simulation, and testability are architectural requirements.
+11. Human Interaction / Voice provides bidirectional communication through text and optional speech.
+12. Speech recognition, identity, authentication, authorization, and intent interpretation are distinct concerns.
+13. Conversational summaries such as "what kind of day is VIGIL having?" must be grounded in measurable system state rather than implied human experience.
+14. Generic spatial targeting is informational and independent of weapon control.
+15. The full architecture lifecycle is the intended implementation target; code is being built incrementally through it.
+16. Security, authorization, privacy, provenance, uncertainty, time, simulation, and testability are architectural requirements.
 
 ---
 
-## 18. Next Engineering Milestone
+## 18. Next Engineering Milestones
 
-The next implementation milestone is **Track → Spatial World Model**.
+The architecture is now established through the human interaction boundary. The next implementation milestones are:
 
-The technical design must establish how track continuity becomes current world-state belief while preserving evidence, provenance, uncertainty, lifecycle, freshness, and the separation between current state and history.
+1. **Spatial / Temporal Fusion** — implement the approved fusion contract and deterministic fused-estimate boundary.
+2. **Human Interaction foundation** — define request/response models and text interaction interfaces.
+3. **World Model query services** — expose grounded structured queries for conversational use.
+4. **Voice adapters** — add optional speech-to-text and text-to-speech provider interfaces with explicit authentication and privacy boundaries.
+5. **Conversation and session context** — support follow-up questions, status summaries, and grounded session/day descriptions.
+6. **Presentation and device integration** — connect interaction outputs to future headset/display/audio runtimes.
+
+Implementation should continue to preserve the separation between environmental truth, analysis, communication, and human decision-making.
