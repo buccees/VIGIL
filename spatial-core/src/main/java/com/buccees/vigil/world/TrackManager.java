@@ -29,6 +29,7 @@ public final class TrackManager {
     public synchronized Track update(Detection detection) {
         Track match = tracks.values().stream()
                 .filter(track -> track.type() == detection.type())
+                .filter(track -> track.lifecycleState() != TrackLifecycleState.TERMINATED)
                 .filter(track -> track.position().distanceTo(detection.position()) <= associationDistanceMeters)
                 .min(Comparator.comparingDouble(track -> track.position().distanceTo(detection.position())))
                 .orElse(null);
@@ -56,7 +57,8 @@ public final class TrackManager {
                 new LocalPosition(0.0, 0.0, 0.0),
                 detection.confidence(),
                 detection.detectedAt(),
-                List.of(detection.id()));
+                List.of(detection.id()),
+                TrackLifecycleState.TENTATIVE);
     }
 
     private Track updateTrack(Track previous, Detection detection) {
@@ -66,7 +68,13 @@ public final class TrackManager {
                 : previous.velocityMetersPerSecond();
 
         List<String> detectionIds = new ArrayList<>(previous.detectionIds());
-        detectionIds.add(detection.id());
+        if (!detectionIds.contains(detection.id())) {
+            detectionIds.add(detection.id());
+        }
+
+        TrackLifecycleState lifecycle = previous.lifecycleState() == TrackLifecycleState.TENTATIVE
+                ? TrackLifecycleState.CONFIRMED
+                : previous.lifecycleState();
 
         return new Track(
                 previous.id(),
@@ -75,7 +83,8 @@ public final class TrackManager {
                 velocity,
                 detection.confidence(),
                 detection.detectedAt(),
-                detectionIds);
+                detectionIds,
+                lifecycle);
     }
 
     private static LocalPosition velocity(LocalPosition from, LocalPosition to, double seconds) {

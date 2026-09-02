@@ -13,7 +13,8 @@ public record Track(
         LocalPosition velocityMetersPerSecond,
         Confidence confidence,
         Instant lastUpdated,
-        List<String> detectionIds
+        List<String> detectionIds,
+        TrackLifecycleState lifecycleState
 ) {
     public Track {
         requireText(id, "id");
@@ -26,6 +27,7 @@ public record Track(
         if (detectionIds.isEmpty()) {
             throw new IllegalArgumentException("detectionIds must not be empty");
         }
+        Objects.requireNonNull(lifecycleState, "lifecycleState");
     }
 
     private static void requireText(String value, String name) {
