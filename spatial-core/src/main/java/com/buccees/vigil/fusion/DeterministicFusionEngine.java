@@ -1,6 +1,7 @@
 package com.buccees.vigil.fusion;
 
 import com.buccees.vigil.spatial.LocalPosition;
+import com.buccees.vigil.world.Confidence;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -13,10 +14,7 @@ import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.Set;
 
-/**
- * Small, deterministic first-pass fusion engine. It deliberately avoids probabilistic identity
- * resolution and heavyweight state estimation; those can be introduced behind this boundary later.
- */
+/** Small, deterministic first-pass fusion engine. */
 public final class DeterministicFusionEngine {
     private final FusionPolicy policy;
 
@@ -24,9 +22,7 @@ public final class DeterministicFusionEngine {
         this.policy = Objects.requireNonNull(policy, "policy");
     }
 
-    /**
-     * Attempts to fuse compatible evidence. Evidence is never written to the World Model here.
-     */
+    /** Attempts to fuse compatible evidence without mutating authoritative world state. */
     public Optional<FusedEstimate> fuse(List<FusionEvidence> evidence, Instant fusionTime) {
         Objects.requireNonNull(evidence, "evidence");
         Objects.requireNonNull(fusionTime, "fusionTime");
@@ -34,7 +30,6 @@ public final class DeterministicFusionEngine {
 
         List<FusionEvidence> valid = evidence.stream()
                 .filter(Objects::nonNull)
-                .filter(this::isValid)
                 .sorted(Comparator.comparing(FusionEvidence::evidenceId))
                 .toList();
         if (valid.isEmpty()) return Optional.empty();
@@ -53,31 +48,31 @@ public final class DeterministicFusionEngine {
         boolean conflict = false;
         for (int i = 0; i < compatible.size(); i++) {
             for (int j = i + 1; j < compatible.size(); j++) {
-                double distance = compatible.get(i).position().distanceTo(compatible.get(j).position());
-                if (distance > policy.maxAssociationDistanceMeters()) {
+                if (compatible.get(i).position().distanceTo(compatible.get(j).position())
+                        > policy.maxAssociationDistanceMeters()) {
                     conflict = true;
                 }
             }
         }
 
-        // A material conflict is not hidden by averaging. Keep the strongest deterministic subset.
         if (conflict) {
             FusionEvidence strongest = compatible.stream()
-                    .max(Comparator.comparing((FusionEvidence e) -> e.confidence().value())
-                            .thenComparing(FusionEvidence::evidenceId).reversed())
+                    .max(Comparator.comparingDouble((FusionEvidence e) -> e.confidence().value())
+                            .thenComparing(FusionEvidence::evidenceId, Comparator.reverseOrder()))
                     .orElseThrow();
             compatible = List.of(strongest);
         }
 
-        double totalWeight = compatible.stream().mapToDouble(e -> Math.max(e.confidence().value(), 1.0e-9)).sum();
+        double totalWeight = compatible.stream()
+                .mapToDouble(e -> Math.max(e.confidence().value(), 1.0e-9)).sum();
         double x = 0, y = 0, z = 0;
         double vx = 0, vy = 0, vz = 0;
         double weightedConfidence = 0;
+        double weightedUncertainty = 0;
+        boolean allHaveUncertainty = true;
         Set<String> sources = new LinkedHashSet<>();
         Set<String> tracks = new LinkedHashSet<>();
         Set<String> detections = new LinkedHashSet<>();
-        boolean allHaveUncertainty = true;
-        double weightedUncertainty = 0;
         Instant latestEvent = compatible.stream().map(FusionEvidence::eventTime).max(Instant::compareTo).orElseThrow();
 
         for (FusionEvidence item : compatible) {
@@ -105,25 +100,11 @@ public final class DeterministicFusionEngine {
                     : "Compatible evidence fused using confidence-weighted deterministic averaging.";
 
         return Optional.of(new FusedEstimate(
-                associationId,
-                first.type(),
-                new LocalPosition(x, y, z),
-                new LocalPosition(vx, vy, vz),
-                new com.buccees.vigil.world.Confidence(weightedConfidence),
+                associationId, first.type(), new LocalPosition(x, y, z), new LocalPosition(vx, vy, vz),
+                new Confidence(weightedConfidence),
                 allHaveUncertainty ? OptionalDouble.of(weightedUncertainty) : OptionalDouble.empty(),
-                fusionTime,
-                latestEvent,
-                List.copyOf(sources),
-                List.copyOf(tracks),
-                List.copyOf(detections),
-                conflict,
-                qualityNote));
-    }
-
-    private boolean isValid(FusionEvidence evidence) {
-        if (evidence.track().position() == null || evidence.track().velocityMetersPerSecond() == null) return false;
-        if (evidence.eventTime() == null || evidence.ingestionTime() == null) return false;
-        return !evidence.frameId().isBlank();
+                fusionTime, latestEvent, List.copyOf(sources), List.copyOf(tracks), List.copyOf(detections),
+                conflict, qualityNote));
     }
 
     private static Duration temporalSkew(Instant a, Instant b) {
