@@ -16,13 +16,7 @@ VIGIL is an **information and presentation system**, not an action system.
 
 The device has no physical appendages or actuators. Its purpose is to acquire, process, correlate, retain, prioritize, and present environmental information to a human user through a screen or future visual interface.
 
-The central capability is to expand human environmental perception through:
-
-- Breadth — processing more information than a person can intake unaided.
-- Speed — acquiring and processing information at machine speed.
-- Persistence — retaining useful information after it leaves the user's immediate view.
-- Correlation — combining observations across sensors, time, and spatial context.
-- Presentation — selecting and displaying the information most useful to the user.
+The central capability is to expand human environmental perception through breadth, speed, persistence, correlation, and presentation.
 
 The human remains the consumer, interpreter, decision-maker, and actor.
 
@@ -32,7 +26,9 @@ The human remains the consumer, interpreter, decision-maker, and actor.
 
 ---
 
-## 2. Approved High-Level Architecture
+## 2. Canonical Architecture
+
+The repository's architecture specification now defines the single canonical pipeline:
 
 ```text
 Sensors / Authorized Data Sources
@@ -41,7 +37,9 @@ Sensors / Authorized Data Sources
             ↓
        Detections
             ↓
-         Tracks
+Tracking / Track Continuity
+            ↓
+     Spatial / Temporal Fusion
             ↓
      Spatial World Model
             ↓
@@ -56,7 +54,17 @@ Spatial / Environmental Services
  Human Decision / Action
 ```
 
-AI is an optional information-analysis and query layer over structured world state. It is not the authority that determines what physically exists and does not autonomously execute consequential physical actions.
+World-state changes produce history/events after the state change:
+
+```text
+World-state change
+        ↓
+ Events / History
+```
+
+AI is an optional information-analysis and query layer over structured world state, evidence, and history. It is not the authority that determines physical truth or executes physical action.
+
+The architecture specification also explicitly defines an **Information & Event Output / Integration layer** for authorized external information consumers. This layer communicates structured information, events, notifications, attention requests, and similar outputs; it does not make VIGIL a physical-action or actuator system.
 
 ---
 
@@ -65,8 +73,28 @@ AI is an optional information-analysis and query layer over structured world sta
 ### Information-first design
 
 - VIGIL presents information rather than physically acting on the environment.
-- The system may support navigation, search, inspection, environmental awareness, authorized security monitoring, and generic spatial targeting/pointing concepts.
+- The system may support navigation, search, inspection, environmental awareness, authorized security monitoring, and generic spatial targeting.
 - The user is responsible for interpreting information and deciding what to do with it.
+
+### Full lifecycle is the architecture
+
+The architecture is not limited to the portions already implemented. The intended lifecycle is:
+
+1. Acquire authorized source information.
+2. Record observations.
+3. Produce detections/perception results.
+4. Maintain temporal tracks.
+5. Perform spatial/temporal fusion.
+6. Update the Spatial World Model.
+7. Update dependent spatial/environmental services.
+8. Record world-state changes as events/history.
+9. Perform optional AI or other information analysis.
+10. Determine relevance and priority.
+11. Manage attention and presentation.
+12. Present information.
+13. Human interprets, decides, and acts.
+
+Implementation is incremental through this lifecycle. An incomplete implementation must not redefine the architecture.
 
 ### Separation of knowledge layers
 
@@ -75,27 +103,33 @@ VIGIL distinguishes:
 1. Raw sensor observations
 2. Perception/detections
 3. Track continuity
-4. World-model beliefs/current state
-5. Derived spatial/environmental characteristics
-6. AI interpretation or analysis
-7. User-facing presentation
+4. Spatial/temporal fusion
+5. World-model beliefs/current state
+6. Derived spatial/environmental characteristics
+7. AI interpretation or analysis
+8. User-facing presentation
 
-Sensors do not directly define the system's understanding of the world.
+### Tracking before the World Model
+
+Tracking is part of the pre-World-Model perception/fusion path. It establishes temporal continuity; it does not own authoritative world state.
+
+### Events after world-state changes
+
+Events and history describe meaningful changes in established or updated world state. They are not another perception stage and do not replace the state that produced them.
+
+### Information & Event Output / Integration
+
+VIGIL may expose structured information and events to authorized external consumers. This is explicitly an information/integration boundary, not an action or actuator layer.
 
 ### Persistent environmental information
 
-Transient detections can become tracks and remain represented in the world state/history after leaving the immediate sensor view.
+Transient detections can become tracks and remain represented in world state/history after leaving the immediate sensor view.
 
 ### Priority and attention
 
 Priority is separate from truth. A low-priority entity still exists in the World Model; priority only determines what receives user attention first.
 
-Confidence and priority are independent:
-
-- High confidence does not automatically mean high priority.
-- Moderate-confidence information can deserve attention if its potential relevance is high.
-
-Priority should be dynamic, explainable, and influenced by factors such as proximity, movement, rate of change, zone entry, task relevance, unexpected appearance/disappearance, path/area intersection, persistence, and recurrence.
+Confidence and priority are independent. Priority should be dynamic, explainable, and influenced by explicit contextual factors.
 
 ### Human bandwidth vs. machine bandwidth
 
@@ -107,47 +141,15 @@ The fast path must maintain continuous low-latency environmental awareness. Expe
 
 ### Latency as a first-class concern
 
-The important performance metric is environment-to-useful-display latency, not merely frame rate.
-
-Important stages to instrument include:
-
-- Sensor acquisition
-- Observation ingestion
-- Perception
-- Detection-to-track association
-- World-model update
-- Prioritization
-- Rendering/presentation
-- End-to-end latency
-
-Observation age/data freshness is also first-class information.
+The important performance metric is environment-to-useful-display latency, not merely frame rate. Sensor acquisition, observation ingestion, perception, detection-to-track association, fusion, World Model update, prioritization, presentation, and end-to-end latency should be measurable.
 
 ### Spatial foundations
 
-The architecture includes explicit handling for:
-
-- Geographic/global coordinates
-- Local Cartesian coordinates
-- Sensor coordinates
-- Device/user coordinates
-- Display coordinates
-- Coordinate transformations
-- Units
-- Camera calibration
-- Sensor health and validity
-- Time and timestamp uncertainty
-- Areas/zones rather than only points
-- Spatial relationships
+The architecture includes explicit handling for geographic/global coordinates, local Cartesian coordinates, sensor coordinates, device/user coordinates, display coordinates, transformations, units, calibration, sensor health, time, timestamp uncertainty, areas/zones, and spatial relationships.
 
 ### Identity separation
 
-The architecture distinguishes:
-
-- Detection identity
-- Track identity
-- World-entity identity
-
-A track is continuity evidence, not automatically a permanent real-world identity.
+The architecture distinguishes detection identity, track identity, and world-entity identity. A track is continuity evidence, not automatically a permanent real-world identity.
 
 ### Current state vs. history
 
@@ -155,15 +157,11 @@ The World Model's current state and historical/replay information are separate c
 
 ### Provenance and explainability
 
-VIGIL should be able to answer:
-
-> **What does VIGIL currently believe about the environment, why does it believe that, and how certain is it?**
-
-Evidence/provenance therefore follows information through the pipeline.
+VIGIL should be able to answer what it currently believes, why it believes it, and how certain that belief is. Evidence/provenance follows information through the pipeline.
 
 ### Security and authorization
 
-Security, authorization, and audit information must follow data through the pipeline. VIGIL must only use authorized data sources.
+Security, authorization, privacy, and audit information must follow data through the pipeline. VIGIL must only use authorized data sources.
 
 ### Offline-first
 
@@ -173,66 +171,17 @@ The local core should function without requiring cloud services. Cloud functiona
 
 Technical terminology should remain precise while avoiding language that implies autonomous physical intervention, offensive action, or weapon control.
 
-Preferred vocabulary includes:
-
-- Observations
-- Detections
-- Tracks
-- Track Continuity / Track Maintenance
-- Spatial World Model
-- Sensor Fusion
-- Spatial Estimation
-- Motion Estimation
-- Uncertainty Quantification
-- Confidence
-- Data Freshness / Observation Age
-- Relevance / Priority
-- Attention Management
-- Information Prioritization
-- Information Presentation
-- Spatial Visualization / Augmented Visualization
-- Temporal History
-- Data Provenance
-- Sensor Health / Sensor Validity
-- Sensor Calibration
-- Regions / Zones / Areas of Interest
-- Change Detection
-- Anomaly Detection
-- Motion Projection / Trajectory Estimation
-- Spatial Search
-- Object of Interest / Entity of Interest
-
-Avoid unnecessary terminology associated with autonomous physical intervention or weapon control.
-
 ---
 
 ## 4. Documentation Already Established
 
 ### `README.md`
 
-Expanded to document:
-
-- VIGIL purpose and system boundary
-- Information-first design
-- Core pipeline
-- Fast/slow processing paths
-- Latency
-- Presentation and attention
-- Priority vs. truth
-- Confidence vs. priority
-- Persistence
-- World Model
-- Identity separation
-- History/replay
-- Security/authorization
-- Offline-first operation
-- Current engineering direction
-- Non-goals
-- Documentation references
+Documents VIGIL's purpose, information-first design, core pipeline, fast/slow paths, latency, presentation, priority, confidence, persistence, World Model, identity separation, history/replay, security, authorization, offline-first operation, and non-goals.
 
 ### `docs/architecture/VIGIL-ARCHITECTURE-SPEC.md`
 
-Architecture specification, currently at v0.2, establishing the system architecture and engineering direction.
+Version 0.3 is the canonical architecture baseline. It explicitly places tracking before the World Model, places events/history after world-state changes, defines the Information & Event Output / Integration layer, and states that the complete lifecycle is the intended architecture even while implementation proceeds incrementally.
 
 ### `docs/architecture/DOCUMENTATION-RULES.md`
 
@@ -276,13 +225,7 @@ Persistent track representation has been added to maintain continuity across suc
 
 ### TrackManager
 
-A deterministic association implementation currently:
-
-- Associates detections using proximity.
-- Requires matching entity type.
-- Calculates local velocity from successive detections.
-- Preserves detection history.
-- Does not infer permanent identity beyond supplied detection evidence.
+A deterministic association implementation currently associates detections using proximity and matching entity type, calculates local velocity from successive detections, preserves detection history, and does not infer permanent identity beyond supplied detection evidence.
 
 ### WorldModel
 
@@ -290,13 +233,7 @@ An initial in-memory current-state projection exists using a concurrent map, wit
 
 ### Tests
 
-Tests currently cover:
-
-- Track continuity
-- Velocity calculation
-- Distant-object separation
-- Type separation
-- Invalid association thresholds
+Tests currently cover track continuity, velocity calculation, distant-object separation, type separation, and invalid association thresholds.
 
 ### CI
 
@@ -312,199 +249,59 @@ A GitHub Actions workflow exists for Java 17 / Gradle 8.10 spatial-core testing.
 
 **Next engineering milestone:** **Track → Spatial World Model.**
 
-The next step should not simply be adding another class. It should establish the contract between tracking and persistent world state while preserving the distinction between perception evidence, track continuity, and current world-state beliefs.
+The next step should establish the contract between tracking and persistent world state while preserving the distinction between perception evidence, track continuity, and current world-state beliefs.
 
 ---
 
-## 7. What Another Engineer Can Understand Today
-
-An engineer joining the project should already be able to answer:
-
-- What VIGIL is.
-- What VIGIL is not.
-- Who/what consumes the information.
-- What the major pipeline stages are.
-- Why persistence matters.
-- Why latency matters.
-- Why priority and attention are first-class systems.
-- Why confidence and priority are separate.
-- Why provenance matters.
-- Why coordinate systems and time are explicit.
-- Why current state and history are separate.
-- Why the architecture is offline-first.
-- What terminology should be used.
-- What has already been implemented.
-- What the immediate next engineering milestone is.
-
-They cannot yet answer every implementation-level question, because several technical contracts are intentionally still being designed.
-
----
-
-## 8. Remaining Engineering Gaps
+## 7. Remaining Engineering Gaps
 
 ### A. World Model contract — **NEXT**
 
-Define exactly how tracks become world-state representations.
-
-Need to establish:
-
-- WorldEntity fields
-- Track-to-entity relationship
-- Current position
-- Motion state
-- Confidence
-- Uncertainty
-- Provenance
-- Observation freshness
-- Associated tracks
-- Lifecycle state
-- Current-state vs. historical-state boundaries
-- Stale/disappeared entity behavior
+Define exactly how tracks become world-state representations, including entity fields, track-to-entity relationships, current position and motion, confidence, uncertainty, provenance, freshness, associated tracks, lifecycle state, and current-state/history boundaries.
 
 ### B. Temporal model
 
-Define:
-
-- Event time
-- Ingestion time
-- Processing time
-- World-state time
-- Presentation time
-- Out-of-order observations
-- Delayed sensors
-- Clock differences
-- Timestamp uncertainty
-- Replay behavior
+Define event time, ingestion time, processing time, world-state time, presentation time, out-of-order observations, delayed sensors, clock differences, timestamp uncertainty, and replay behavior.
 
 ### C. Spatial uncertainty and estimation
 
-Define how uncertainty is represented and propagated through:
-
-- Position estimates
-- Motion estimates
-- Coordinate transformations
-- Sensor measurements
-- Fusion
+Define how uncertainty is represented and propagated through position, motion, coordinate transformations, sensor measurements, and fusion.
 
 ### D. Sensor abstraction
 
-Define a common sensor/data-source contract covering:
-
-- Sensor identity
-- Capabilities
-- Coordinate frame
-- Calibration
-- Health
-- Validity
-- Timestamp characteristics
-- Observation stream
+Define sensor identity, capabilities, coordinate frame, calibration, health, validity, timestamp characteristics, and observation stream contracts.
 
 ### E. Multi-sensor fusion
 
-Define how information from multiple sensors is correlated, including:
-
-- Temporal alignment
-- Coordinate transformation
-- Association
-- Duplicate observations
-- Conflicting observations
-- Sensor reliability
-- Fusion confidence
+Define temporal alignment, coordinate transformation, association, duplicate observations, conflicting observations, sensor reliability, and fusion confidence.
 
 ### F. Event/message architecture
 
-Determine how information moves between processing stages without prematurely introducing distributed infrastructure.
-
-Potential approaches include:
-
-- In-process events
-- Queues
-- Streams
-- Synchronous calls
-- Hybrid architecture
+Determine how information moves between processing stages without prematurely introducing distributed infrastructure. Candidate approaches include in-process events, queues, streams, synchronous calls, or a hybrid.
 
 ### G. Performance architecture
 
-Establish measurable targets for:
-
-- Observation ingestion latency
-- Detection latency
-- Detection-to-track latency
-- World-model update latency
-- Prioritization latency
-- Presentation latency
-- End-to-end environment-to-useful-display latency
-- Throughput
-- Concurrent tracks/entities
-- Resource usage
+Establish measurable targets for ingestion, detection, detection-to-track, fusion, World Model update, prioritization, presentation, end-to-end latency, throughput, concurrent tracks/entities, and resource usage.
 
 ### H. Relevance and Priority Engine
 
-Define the formal priority/relevance model, including:
-
-- Relevance factors
-- Priority scoring
-- Dynamic reprioritization
-- Priority stability/hysteresis
-- User context
-- Spatial proximity
-- Motion/change
-- Zone/area relationships
-- Persistence/recurrence
-- Explainability
+Define relevance factors, priority scoring, dynamic reprioritization, stability/hysteresis, user context, spatial proximity, motion/change, zone relationships, persistence/recurrence, and explainability.
 
 ### I. Attention Management
 
-Define how machine-scale information is reduced to human-usable presentation.
-
-Need to establish:
-
-- Attention budget
-- Salience
-- Alert levels
-- Persistent vs. transient information
-- Information suppression
-- Attention transitions
-- Clutter management
+Define attention budget, salience, alert levels, persistent/transient information, suppression, attention transitions, and clutter management.
 
 ### J. Presentation architecture
 
-Define a device-independent presentation model supporting future:
-
-- Desktop displays
-- Mobile screens
-- Camera overlays
-- AR displays
-- Wearable/visual interfaces
-
-The World Model should not become coupled to a particular display technology.
+Define a device-independent presentation model supporting desktop, mobile, camera overlays, AR displays, and wearable/visual interfaces.
 
 ### K. Device spatial model
 
-Eventually represent:
-
-- Device position
-- Device orientation
-- Camera mounting geometry
-- IMU
-- Compass
-- GPS/GNSS
-- Sensor-to-device transforms
-- Display geometry
+Eventually represent device position, orientation, camera mounting geometry, IMU, compass, GPS/GNSS, sensor-to-device transforms, and display geometry.
 
 ### L. Persistence and replay
 
-Define:
-
-- What is memory-only
-- What is persisted
-- Retention policy
-- Storage format
-- Indexing
-- Compression
-- Replay format
-- Historical querying
-- Crash recovery
+Define memory-only state, persisted state, retention, storage, indexing, compression, replay, historical querying, and crash recovery.
 
 ### M. Simulation environment
 
@@ -512,46 +309,19 @@ Build simulated environments and sensors so the complete pipeline can be exercis
 
 ### N. Testing strategy
 
-Expand beyond unit tests into:
-
-- Integration tests
-- Simulation tests
-- Performance tests
-- Fault-injection tests
-- Replay/determinism tests
-- Sensor degradation tests
-- Stale-data tests
+Expand into integration, simulation, performance, fault-injection, replay/determinism, sensor-degradation, and stale-data tests.
 
 ### O. User/context model
 
-Define the information the presentation system can use about:
-
-- User location
-- Orientation
-- Current view
-- Current task
-- Selected entity/object
-- Navigation context
-- Attention state
-- Presentation preferences
-
-This context should influence presentation and relevance without corrupting authoritative environmental state.
+Define the information the presentation system can use about user location, orientation, current view, task, selected entity/object, navigation context, attention state, and presentation preferences.
 
 ### P. Application-layer architecture
 
-After the core contracts stabilize, define the surrounding application modules for:
-
-- Navigation
-- Search
-- Inspection
-- Environmental awareness
-- Authorized security monitoring
-- Generic spatial information/targeting workflows
-- Future visual/wearable interfaces
+After core contracts stabilize, define surrounding modules for navigation, search, inspection, environmental awareness, authorized security monitoring, generic spatial information/targeting workflows, and future visual/wearable interfaces.
 
 ---
 
-## 9. Recommended Engineering Sequence
+## 8. Recommended Engineering Sequence
 
 ### Phase 1 — Spatial Truth
 
@@ -624,7 +394,7 @@ After the core contracts stabilize, define the surrounding application modules f
 
 ---
 
-## 10. Immediate Next Task
+## 9. Immediate Next Task
 
 ### Track → World Model
 
@@ -634,23 +404,13 @@ The implementation should answer:
 
 > **What does the World Model currently believe exists, where is it, how recently was it observed, how confident is that belief, what track/evidence supports it, and what happens when the evidence becomes stale?**
 
-The implementation should include tests for:
-
-- Track-to-entity projection
-- Entity updates from continued tracks
-- Multiple simultaneous entities
-- Track continuity
-- Stale tracks
-- Disappearing entities
-- Confidence propagation
-- Provenance preservation
-- Current state vs. history boundaries
+The implementation should include tests for track-to-entity projection, entity updates from continued tracks, multiple simultaneous entities, track continuity, stale tracks, disappearing entities, confidence propagation, provenance preservation, and current state vs. history boundaries.
 
 ---
 
-## 11. Definition of Progress
+## 10. Definition of Progress
 
-A milestone is considered complete when:
+A milestone is complete when:
 
 - The architectural concept is documented.
 - The data contract is explicit.
@@ -662,13 +422,12 @@ A milestone is considered complete when:
 
 ---
 
-## 12. Project Resume Point
+## 11. Project Resume Point
 
-**Resume here:** `Track → Spatial World Model`
-
+**Resume here:** `Track → Spatial World Model`  
 **Branch:** `feature/spatial-core`
 
 **Do not modify:** `buccees/ObsidianShareTarget`  
 **Do not use for VIGIL work:** `buccees/ObsidianShareTarget-AgentTest`
 
-The VIGIL architecture is established enough for implementation to proceed systematically. The remaining work is primarily the conversion of architectural concepts into explicit technical contracts, tested implementations, performance requirements, and eventually physical-device/presentation integrations.
+The architecture is now the complete intended lifecycle, while implementation remains deliberately incremental. The next engineering work should convert the Track → World Model boundary into an explicit technical contract and tested implementation without expanding the architecture unnecessarily.
