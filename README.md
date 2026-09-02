@@ -34,20 +34,32 @@ Sensors / Authorized Data Sources
             ↓
        Detections
             ↓
-         Tracks
+Tracking / Track Continuity
             ↓
-       World Model
+     Spatial / Temporal Fusion
             ↓
-  Spatial / Environmental Services
+     Spatial World Model
             ↓
-   Relevance & Priority Engine
+Spatial / Environmental Services
             ↓
-   Presentation / Attention Layer
+ Relevance & Priority Engine
+            ↓
+ Presentation / Attention Layer
             ↓
            USER
             ↓
       Human Decision / Action
 ```
+
+World-state changes produce history/events after the state change:
+
+```text
+World-state change
+        ↓
+ Events / History
+```
+
+VIGIL may also expose structured information, events, notifications, attention requests, navigation/search/inspection requests, and other authorized outputs through an **Information & Event Output / Integration** boundary. This is an information/integration interface, not a physical-action or actuator layer.
 
 The pipeline is intentionally one-way with respect to the physical environment. VIGIL provides information; it does not physically act on the environment.
 
@@ -64,6 +76,12 @@ Detections represent things identified within observations. A detection is a per
 ### Tracks
 
 Tracks represent continuity across successive detections. They allow VIGIL to maintain the movement and history of something observed over time without silently inventing identity.
+
+### Spatial / Temporal Fusion
+
+Fusion combines compatible evidence across sensors, coordinate frames, and time. It preserves provenance, confidence, uncertainty, and conflicting or insufficient evidence rather than forcing unsupported certainty.
+
+Tracking establishes temporal continuity; fusion combines compatible evidence and estimates across sources and time.
 
 ### World Model
 
@@ -109,6 +127,7 @@ Sensor
   → Observation
   → Detection
   → Track
+  → Spatial / Temporal Fusion
   → World Model
   → Presentation
 ```
@@ -334,7 +353,7 @@ The current spatial-core implementation establishes the early perception chain:
 
 The next architectural step is to integrate persistent tracks into the World Model while preserving the distinction between current world state, perception evidence, and historical track information.
 
-Future work should then build toward spatial fusion, world-state services, relevance and priority, attention-aware presentation, navigation/search/inspection capabilities, environmental analysis, and optional AI-assisted interpretation.
+Future work should then build toward spatial/temporal fusion, world-state services, relevance and priority, attention-aware presentation, navigation/search/inspection capabilities, environmental analysis, and optional AI-assisted interpretation.
 
 ## Documentation Rules
 
