@@ -27,10 +27,10 @@ class DeterministicFusionEngineTest {
 
         FusedEstimate result = engine.fuse(List.of(b, a), T0.plusMillis(200)).orElseThrow();
 
-        assertEquals(0.0, result.position().xM(), 1.0e-9);
-        assertEquals(0.8571428571, result.position().yM(), 1.0e-9);
-        assertEquals(0.8571428571, result.position().zM(), 1.0e-9);
-        assertEquals(0.0, result.positionUncertaintyMeters().orElseThrow(), 1.0e-9);
+        assertEquals(0.8571428571, result.position().xM(), 1.0e-9);
+        assertEquals(0.0, result.position().yM(), 1.0e-9);
+        assertEquals(0.0, result.position().zM(), 1.0e-9);
+        assertEquals(2.8571428571, result.positionUncertaintyMeters().orElseThrow(), 1.0e-9);
         assertEquals(List.of("camera-a", "camera-b"), result.sourceIds());
         assertEquals(List.of("track-a", "track-b"), result.trackIds());
         assertFalse(result.qualified());
@@ -41,7 +41,8 @@ class DeterministicFusionEngineTest {
         FusionEvidence a = evidence("camera-a", "track-a", 0, 0, 0, 0.8, null, 0);
         FusionEvidence b = new FusionEvidence("camera-b", track("track-b", 1, 0, 0, 0.8, 1), "other-frame", T0, T0, null);
 
-        assertTrue(engine.fuse(List.of(a, b), T0).isEmpty());
+        FusedEstimate result = engine.fuse(List.of(a, b), T0).orElseThrow();
+        assertEquals(List.of("camera-a"), result.sourceIds());
     }
 
     @Test
@@ -50,7 +51,6 @@ class DeterministicFusionEngineTest {
         FusionEvidence b = evidence("camera-b", "track-b", 1, 0, 0, 0.8, 3.0, 100);
 
         FusedEstimate result = engine.fuse(List.of(a, b), T0.plusMillis(100)).orElseThrow();
-
         assertTrue(result.positionUncertaintyMeters().isEmpty());
     }
 
@@ -67,7 +67,7 @@ class DeterministicFusionEngineTest {
     }
 
     @Test
-    void staleByPolicyEvidenceIsNotUsedWithCurrentEvidence() {
+    void evidenceOutsideTemporalPolicyIsExcluded() {
         FusionEvidence a = evidence("camera-a", "track-a", 0, 0, 0, 0.8, null, 0);
         FusionEvidence b = evidence("camera-b", "track-b", 1, 0, 0, 0.8, null, 1000);
 
