@@ -12,6 +12,118 @@ VIGIL is an information-first spatial and environmental awareness platform. It i
 
 VIGIL is intentionally a **presentation and awareness system, not an autonomous action system**. It has no physical appendages or actuators. Its output is information presented to the user on a screen or future visual interface. The user remains responsible for interpreting the information and deciding how to react.
 
+# Project Priorities & Delivery Outlook
+
+> **Planning note:** Dates below are working targets, not promises. They are intended to keep implementation ordered, expose deferred work, and make it clear when each architectural concern is expected to be resolved. CI, contract changes, or newly discovered dependencies may move a target date.
+
+## Current Priority — Spatial / Temporal Fusion
+
+**Target completion:** **September 6, 2026**  
+**Status:** 🟡 In progress
+
+Before advancing to Relevance / Priority, the following must be completed:
+
+- [x] Implement deterministic fusion foundation.
+- [x] Preserve confidence, uncertainty, freshness, and provenance.
+- [x] Prevent fusion from directly mutating the authoritative World Model.
+- [x] Make the World Model update boundary explicit and observable.
+- [x] Verify the boundary implementation in CI (#38 passed).
+- [ ] Reconcile the Track → World Model contract with `FusedEstimate`.
+- [ ] Make fusion exclusions/rejections explicitly observable.
+- [ ] Clarify deterministic association keys versus authoritative World Entity identity.
+- [ ] Correct and formalize `FusedEstimate.qualified` semantics.
+- [ ] Establish and maintain the durable CI attempt log.
+- [ ] Run final Fusion contract/integration verification.
+
+**Exit condition:** Fusion behavior, contracts, diagnostics, provenance, and World Model mutation boundaries are consistent, tested, and CI-verified.
+
+## Next — Relevance / Priority
+
+**Target:** **September 7–11, 2026**  
+**Priority:** 🔴 Highest after Fusion
+
+Implement deterministic, explainable relevance and priority over authoritative World Model information.
+
+Required outcomes:
+
+- [ ] Define relevance independently from confidence and truth.
+- [ ] Define priority independently from confidence and uncertainty.
+- [ ] Preserve low-priority information in the World Model.
+- [ ] Establish explainable priority factors and precedence.
+- [ ] Test priority changes as spatial/contextual conditions change.
+- [ ] Define failure and unavailable-context behavior.
+
+**Exit condition:** Priority changes presentation relevance without altering authoritative world state, and the behavior is deterministic and explainable.
+
+## Then — Attention / Presentation
+
+**Target:** **September 12–18, 2026**  
+**Priority:** 🟠 High
+
+Build the human-scale presentation layer on top of World Model state and Relevance / Priority.
+
+- [ ] Define attention-management contract.
+- [ ] Represent persistence, freshness, uncertainty, and provenance in presentation.
+- [ ] Prevent presentation from becoming a source of environmental truth.
+- [ ] Preserve lower-priority information for inspection.
+- [ ] Define latency and presentation-quality measurements.
+- [ ] Establish the first implementation-level presentation interface.
+
+**Exit condition:** VIGIL can convert prioritized environmental information into a bounded, understandable presentation without mutating authoritative state.
+
+## Then — Human Interaction / Voice
+
+**Target:** **September 19–25, 2026**  
+**Priority:** 🟠 High
+
+Implement bidirectional text and optional voice interaction within the approved human-decision boundary.
+
+- [ ] Implement authorized information queries.
+- [ ] Ground responses in current World Model state, history, provenance, freshness, and uncertainty.
+- [ ] Define ambiguity and stale-data behavior.
+- [ ] Keep AI/voice separate from authorization and physical action.
+- [ ] Add interaction-level verification tests.
+
+**Exit condition:** Human interaction can inspect and communicate with VIGIL without becoming an autonomy or authority mechanism.
+
+## Integration / Testing
+
+**Target:** **September 26–October 4, 2026**  
+**Priority:** 🔴 Release-gating
+
+Integrate the completed layers and verify the architecture end-to-end.
+
+- [ ] Full pipeline integration tests.
+- [ ] Timing, freshness, and ordering verification.
+- [ ] Provenance verification.
+- [ ] Failure/degraded-state verification.
+- [ ] Performance and latency measurements.
+- [ ] Architectural invariant checks.
+- [ ] CI verification of the integrated baseline.
+
+**Expected milestone:** **October 4, 2026** for the first complete software-layer baseline, assuming no major architectural rework is required.
+
+## Deferred Engineering Direction
+
+These capabilities are intentionally **not required to complete the first deterministic Fusion baseline**. They remain pinned here so they are not forgotten and so implementation can be scheduled deliberately rather than added opportunistically.
+
+| Priority | Future capability | Planned window | Resolution trigger |
+|---|---|---|---|
+| P1 | Advanced probabilistic association | October 2026 | After deterministic association is stable and benchmarked |
+| P1 | Advanced uncertainty propagation / covariance | October–November 2026 | When uncertainty requirements exceed the initial scalar model |
+| P1 | Multi-hypothesis tracking | November 2026 | When ambiguous identity/association cases require multiple live hypotheses |
+| P2 | Automatic calibration | November–December 2026 | After sensor/calibration interfaces are established |
+| P2 | ML-assisted fusion | December 2026+ | Only after deterministic fusion provides a trustworthy baseline |
+| P2 | AI-assisted identity resolution | December 2026+ | Only after identity contracts and provenance are mature |
+| P2 | Distributed fusion | 2027 direction | When multiple VIGIL nodes require shared spatial state |
+| P2 | Persistent fusion databases | 2027 direction | When operational history/replay volume requires dedicated persistence |
+
+### Deferred-work rule
+
+A deferred capability should move into active implementation only when its **resolution trigger** is met and the current architecture/contracts can support it without weakening established boundaries. Each activation should receive its own technical contract, implementation milestone, tests, and CI verification.
+
+The deferred list is a planning tool, not permission to skip current dependencies.
+
 ## What We Are Building
 
 VIGIL should ultimately function as a **spatial intelligence substrate for a headset OS or spatial-computing platform**. Instead of every application independently implementing its own perception and environmental model, VIGIL can provide shared system services such as:
@@ -65,7 +177,7 @@ The distinction matters:
 | Spatial intelligence architecture | Defined |
 | Observation → Detection → Track | Implemented foundation |
 | Track → World Model | Implemented foundation |
-| Spatial / temporal fusion | Next major implementation layer |
+| Spatial / temporal fusion | In implementation / verification |
 | Spatial/environmental services | Planned |
 | Relevance / priority | Architecture defined; implementation ahead |
 | Attention-aware presentation | Architecture defined; implementation ahead |
