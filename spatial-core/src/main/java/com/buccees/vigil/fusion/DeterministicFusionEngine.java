@@ -24,26 +24,47 @@ public final class DeterministicFusionEngine {
 
     /** Attempts to fuse compatible evidence without mutating authoritative world state. */
     public Optional<FusedEstimate> fuse(List<FusionEvidence> evidence, Instant fusionTime) {
+        return fuseDetailed(evidence, fusionTime).estimate();
+    }
+
+    /**
+     * Performs deterministic fusion and exposes evidence exclusions alongside the estimate.
+     * Exclusions are diagnostic output only and never mutate authoritative world state.
+     */
+    public FusionResult fuseDetailed(List<FusionEvidence> evidence, Instant fusionTime) {
         Objects.requireNonNull(evidence, "evidence");
         Objects.requireNonNull(fusionTime, "fusionTime");
-        if (evidence.isEmpty()) return Optional.empty();
+        if (evidence.isEmpty()) return new FusionResult(Optional.empty(), List.of());
 
         List<FusionEvidence> valid = evidence.stream()
                 .filter(Objects::nonNull)
                 .sorted(Comparator.comparing(FusionEvidence::evidenceId))
                 .toList();
-        if (valid.isEmpty()) return Optional.empty();
+        if (valid.isEmpty()) return new FusionResult(Optional.empty(), List.of());
 
         FusionEvidence first = valid.get(0);
+        List<FusionExclusion> exclusions = new ArrayList<>();
         List<FusionEvidence> compatible = new ArrayList<>();
         for (FusionEvidence candidate : valid) {
-            if (!candidate.frameId().equals(first.frameId())) continue;
-            if (candidate.type() != first.type()) continue;
-            if (temporalSkew(first.eventTime(), candidate.eventTime()).compareTo(policy.maxEventTimeSkew()) > 0) continue;
-            if (first.position().distanceTo(candidate.position()) > policy.conflictDistanceMeters()) continue;
+            if (!candidate.frameId().equals(first.frameId())) {
+                exclusions.add(new FusionExclusion(candidate.evidenceId(), FusionExclusionReason.INCOMPATIBLE_FRAME));
+                continue;
+            }
+            if (candidate.type() != first.type()) {
+                exclusions.add(new FusionExclusion(candidate.evidenceId(), FusionExclusionReason.INCOMPATIBLE_TYPE));
+                continue;
+            }
+            if (temporalSkew(first.eventTime(), candidate.eventTime()).compareTo(policy.maxEventTimeSkew()) > 0) {
+                exclusions.add(new FusionExclusion(candidate.evidenceId(), FusionExclusionReason.TEMPORAL_SKEW));
+                continue;
+            }
+            if (first.position().distanceTo(candidate.position()) > policy.conflictDistanceMeters()) {
+                exclusions.add(new FusionExclusion(candidate.evidenceId(), FusionExclusionReason.OUTSIDE_CONFLICT_DISTANCE));
+                continue;
+            }
             compatible.add(candidate);
         }
-        if (compatible.isEmpty()) return Optional.empty();
+        if (compatible.isEmpty()) return new FusionResult(Optional.empty(), List.copyOf(exclusions));
 
         boolean conflict = false;
         for (int i = 0; i < compatible.size(); i++) {
@@ -60,6 +81,11 @@ public final class DeterministicFusionEngine {
                     .max(Comparator.comparingDouble((FusionEvidence e) -> e.confidence().value())
                             .thenComparing(FusionEvidence::evidenceId, Comparator.reverseOrder()))
                     .orElseThrow();
+            for (FusionEvidence item : compatible) {
+                if (!item.evidenceId().equals(strongest.evidenceId())) {
+                    exclusions.add(new FusionExclusion(item.evidenceId(), FusionExclusionReason.MATERIAL_DISAGREEMENT));
+                }
+            }
             compatible = List.of(strongest);
         }
 
@@ -99,12 +125,37 @@ public final class DeterministicFusionEngine {
                     ? "Single compatible evidence item; no cross-source fusion performed."
                     : "Compatible evidence fused using confidence-weighted deterministic averaging.";
 
-        return Optional.of(new FusedEstimate(
+        FusedEstimate estimate = new FusedEstimate(
                 associationId, first.type(), new LocalPosition(x, y, z), new LocalPosition(vx, vy, vz),
                 new Confidence(weightedConfidence),
                 allHaveUncertainty ? OptionalDouble.of(weightedUncertainty) : OptionalDouble.empty(),
                 fusionTime, latestEvent, List.copyOf(sources), List.copyOf(tracks), List.copyOf(detections),
-                !conflict, qualityNote));
+                !conflict, qualityNote);
+        return new FusionResult(Optional.of(estimate), List.copyOf(exclusions));
+    }
+
+    /** Structured diagnostic result for a fusion attempt. */
+    public record FusionResult(Optional<FusedEstimate> estimate, List<FusionExclusion> exclusions) {
+        public FusionResult {
+            Objects.requireNonNull(estimate, "estimate");
+            exclusions = List.copyOf(Objects.requireNonNull(exclusions, "exclusions"));
+        }
+    }
+
+    /** Evidence excluded from the selected fusion set and the deterministic reason. */
+    public record FusionExclusion(String evidenceId, FusionExclusionReason reason) {
+        public FusionExclusion {
+            Objects.requireNonNull(evidenceId, "evidenceId");
+            Objects.requireNonNull(reason, "reason");
+        }
+    }
+
+    public enum FusionExclusionReason {
+        INCOMPATIBLE_FRAME,
+        INCOMPATIBLE_TYPE,
+        TEMPORAL_SKEW,
+        OUTSIDE_CONFLICT_DISTANCE,
+        MATERIAL_DISAGREEMENT
     }
 
     private static Duration temporalSkew(Instant a, Instant b) {

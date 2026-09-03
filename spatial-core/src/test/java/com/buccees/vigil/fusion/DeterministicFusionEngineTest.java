@@ -47,6 +47,19 @@ class DeterministicFusionEngineTest {
     }
 
     @Test
+    void incompatibleFrameIsExplicitlyExcluded() {
+        FusionEvidence a = evidence("camera-a", "track-a", 0, 0, 0, 0.8, null, 0);
+        FusionEvidence b = new FusionEvidence("camera-b", track("track-b", 1, 0, 0, 0.8, 1), "other-frame", T0, T0, null);
+
+        DeterministicFusionEngine.FusionResult result = engine.fuseDetailed(List.of(a, b), T0);
+
+        assertEquals(1, result.exclusions().size());
+        assertEquals("camera-b:track-b", result.exclusions().get(0).evidenceId());
+        assertEquals(DeterministicFusionEngine.FusionExclusionReason.INCOMPATIBLE_FRAME,
+                result.exclusions().get(0).reason());
+    }
+
+    @Test
     void missingUncertaintyRemainsUnknown() {
         FusionEvidence a = evidence("camera-a", "track-a", 0, 0, 0, 0.8, null, 0);
         FusionEvidence b = evidence("camera-b", "track-b", 1, 0, 0, 0.8, 3.0, 100);
@@ -69,6 +82,19 @@ class DeterministicFusionEngineTest {
     }
 
     @Test
+    void materialDisagreementIsExplicitlyExcluded() {
+        FusionEvidence a = evidence("camera-a", "track-a", 0, 0, 0, 0.9, 1.0, 0);
+        FusionEvidence b = evidence("camera-b", "track-b", 10, 0, 0, 0.4, 1.0, 50);
+
+        DeterministicFusionEngine.FusionResult result = engine.fuseDetailed(List.of(a, b), T0.plusMillis(100));
+
+        assertEquals(1, result.exclusions().size());
+        assertEquals("camera-b:track-b", result.exclusions().get(0).evidenceId());
+        assertEquals(DeterministicFusionEngine.FusionExclusionReason.MATERIAL_DISAGREEMENT,
+                result.exclusions().get(0).reason());
+    }
+
+    @Test
     void evidenceOutsideTemporalPolicyIsExcluded() {
         FusionEvidence a = evidence("camera-a", "track-a", 0, 0, 0, 0.8, null, 0);
         FusionEvidence b = evidence("camera-b", "track-b", 1, 0, 0, 0.8, null, 1000);
@@ -77,6 +103,19 @@ class DeterministicFusionEngineTest {
 
         assertEquals(List.of("camera-a"), result.sourceIds());
         assertEquals(List.of("track-a"), result.trackIds());
+    }
+
+    @Test
+    void temporalSkewIsExplicitlyExcluded() {
+        FusionEvidence a = evidence("camera-a", "track-a", 0, 0, 0, 0.8, null, 0);
+        FusionEvidence b = evidence("camera-b", "track-b", 1, 0, 0, 0.8, null, 1000);
+
+        DeterministicFusionEngine.FusionResult result = engine.fuseDetailed(List.of(a, b), T0.plusMillis(100));
+
+        assertEquals(1, result.exclusions().size());
+        assertEquals("camera-b:track-b", result.exclusions().get(0).evidenceId());
+        assertEquals(DeterministicFusionEngine.FusionExclusionReason.TEMPORAL_SKEW,
+                result.exclusions().get(0).reason());
     }
 
     private static FusionEvidence evidence(String source, String trackId, double x, double y, double z,
