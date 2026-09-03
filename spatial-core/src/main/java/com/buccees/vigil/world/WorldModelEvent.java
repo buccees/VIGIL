@@ -10,9 +10,11 @@ public record WorldModelEvent(
         Instant eventTime,
         String entityId,
         String trackId,
+        WorldModelUpdateOrigin origin,
         Type type,
         TrackLifecycleState stateBefore,
         TrackLifecycleState stateAfter,
+        List<String> contributingTrackIds,
         List<String> detectionIds
 ) {
     public enum Type {
@@ -28,8 +30,10 @@ public record WorldModelEvent(
         Objects.requireNonNull(eventTime, "eventTime");
         requireText(entityId, "entityId");
         requireText(trackId, "trackId");
+        Objects.requireNonNull(origin, "origin");
         Objects.requireNonNull(type, "type");
         Objects.requireNonNull(stateAfter, "stateAfter");
+        contributingTrackIds = List.copyOf(Objects.requireNonNull(contributingTrackIds, "contributingTrackIds"));
         detectionIds = List.copyOf(Objects.requireNonNull(detectionIds, "detectionIds"));
     }
 

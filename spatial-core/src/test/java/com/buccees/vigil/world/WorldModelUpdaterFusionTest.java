@@ -5,11 +5,13 @@ import com.buccees.vigil.spatial.LocalPosition;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalDouble;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class WorldModelUpdaterFusionTest {
     private static final Instant T0 = Instant.parse("2026-09-02T00:00:00Z");
@@ -28,6 +30,22 @@ class WorldModelUpdaterFusionTest {
         assertEquals("track-a", entity.sourceTrackId());
         assertEquals(entity.id(), updater.trackEntityAssociations().get("track-a"));
         assertEquals(entity.id(), updater.trackEntityAssociations().get("track-b"));
+    }
+
+    @Test
+    void fusedEstimateCrossingBoundaryEmitsObservableOriginAndProvenance() {
+        WorldModel worldModel = new WorldModel();
+        List<WorldModelEvent> events = new ArrayList<>();
+        WorldModelUpdater updater = new WorldModelUpdater(worldModel, events::add);
+
+        updater.update(estimate("track-a", List.of("track-a", "track-b"), T0.plusSeconds(2), 4.0));
+
+        assertEquals(1, events.size());
+        WorldModelEvent event = events.get(0);
+        assertEquals(WorldModelUpdateOrigin.FUSED_ESTIMATE, event.origin());
+        assertEquals(List.of("track-a", "track-b"), event.contributingTrackIds());
+        assertEquals("track-a", event.trackId());
+        assertTrue(worldModel.find(event.entityId()).isPresent());
     }
 
     @Test

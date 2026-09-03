@@ -3,6 +3,7 @@ package com.buccees.vigil.world;
 import com.buccees.vigil.fusion.FusedEstimate;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -46,7 +47,7 @@ public final class WorldModelUpdater {
         WorldModelEvent.Type eventType = current == null
                 ? WorldModelEvent.Type.WORLD_ENTITY_CREATED
                 : eventTypeFor(track.lifecycleState());
-        publishEvent(next, current, track.id(), eventType);
+        publishEvent(next, current, track.id(), WorldModelUpdateOrigin.TRACK, List.of(track.id()), eventType);
         return next;
     }
 
@@ -77,7 +78,8 @@ public final class WorldModelUpdater {
         WorldModelEvent.Type eventType = current == null
                 ? WorldModelEvent.Type.WORLD_ENTITY_CREATED
                 : WorldModelEvent.Type.WORLD_ENTITY_UPDATED;
-        publishEvent(next, current, estimate.associationId(), eventType);
+        publishEvent(next, current, estimate.associationId(), WorldModelUpdateOrigin.FUSED_ESTIMATE,
+                estimate.trackIds(), eventType);
         return next;
     }
 
@@ -102,15 +104,19 @@ public final class WorldModelUpdater {
         return "entity-" + nextEntityNumber++;
     }
 
-    private void publishEvent(WorldEntity next, WorldEntity current, String trackId, WorldModelEvent.Type eventType) {
+    private void publishEvent(WorldEntity next, WorldEntity current, String trackId,
+                              WorldModelUpdateOrigin origin, List<String> contributingTrackIds,
+                              WorldModelEvent.Type eventType) {
         eventPublisher.publish(new WorldModelEvent(
                 "world-event-" + nextEventNumber++,
                 next.lastUpdated(),
                 next.id(),
                 trackId,
+                origin,
                 eventType,
                 current == null ? null : current.lifecycleState(),
                 next.lifecycleState(),
+                contributingTrackIds,
                 next.detectionIds()));
     }
 
