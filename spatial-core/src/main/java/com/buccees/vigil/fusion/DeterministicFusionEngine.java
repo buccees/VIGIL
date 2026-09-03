@@ -94,7 +94,7 @@ public final class DeterministicFusionEngine {
 
         String associationId = tracks.stream().sorted().findFirst().orElseThrow();
         String qualityNote = conflict
-                ? "Material disagreement detected; fused estimate uses the strongest deterministic evidence."
+                ? "Material disagreement detected; estimate uses the strongest deterministic evidence and is not cross-source qualified."
                 : compatible.size() == 1
                     ? "Single compatible evidence item; no cross-source fusion performed."
                     : "Compatible evidence fused using confidence-weighted deterministic averaging.";
@@ -104,7 +104,7 @@ public final class DeterministicFusionEngine {
                 new Confidence(weightedConfidence),
                 allHaveUncertainty ? OptionalDouble.of(weightedUncertainty) : OptionalDouble.empty(),
                 fusionTime, latestEvent, List.copyOf(sources), List.copyOf(tracks), List.copyOf(detections),
-                conflict, qualityNote));
+                !conflict, qualityNote));
     }
 
     private static Duration temporalSkew(Instant a, Instant b) {
