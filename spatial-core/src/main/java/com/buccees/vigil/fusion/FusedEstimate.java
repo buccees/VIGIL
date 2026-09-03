@@ -47,6 +47,11 @@ public record FusedEstimate(
         }
     }
 
+    /** Deterministic association key only; it is not authoritative physical identity. */
+    public String deterministicAssociationKey() {
+        return associationId;
+    }
+
     private static void requireText(String value, String name) {
         if (value == null || value.isBlank()) throw new IllegalArgumentException(name + " must not be blank");
     }
