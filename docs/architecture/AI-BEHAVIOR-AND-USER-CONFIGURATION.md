@@ -12,15 +12,15 @@ The software is intended to operate as part of personal civilian sporting equipm
 
 These requirements establish boundaries between the software's core behavior, user customization, and the development process used to create the software.
 
-## 2. Separation of Development Language and Product Behavior
+## 2. AI Behavior and Configuration
 
-Language used between developers and development tools, including informal language, shorthand, profanity, sarcasm, frustration, or other conversational habits, must not be treated as a specification for customer-facing AI behavior.
+Customer-facing AI behavior must be determined by explicit product requirements, approved configuration, and other intentionally defined sources.
 
-The AI's customer-facing language must be determined by explicit product requirements, system instructions, approved configuration, and other intentionally defined sources.
+The deployed AI should not derive its baseline communication style from incidental development context or unrelated conversational material.
 
-Developer conversations are not automatically training material, personality instructions, or style guidance for the deployed AI.
+The product should maintain a clear distinction between development-time context and deployed customer-facing behavior.
 
-This separation applies specifically to software development and does not establish a rule governing unrelated creative or artistic work.
+This requirement applies specifically to software development and does not establish a rule governing unrelated creative or artistic work.
 
 ## 3. Baseline AI Behavior
 
@@ -31,10 +31,9 @@ The baseline behavior should be:
 - Professional and appropriate for a civilian consumer product.
 - Clear and understandable.
 - Consistent across users unless personalization explicitly changes permitted behavior.
-- Independent of the language used by developers during development.
 - Governed by application-level safety, security, privacy, and operational requirements.
 
-The baseline behavior should not be implicitly modified through ordinary developer conversations.
+The baseline behavior should not be implicitly modified through incidental development context.
 
 ## 4. Private User-Defined Behavior
 
@@ -134,7 +133,7 @@ A change intended for one user must not accidentally become a global change.
 
 A development-time instruction must not accidentally become customer-facing behavior.
 
-A customer-facing behavior change must be deliberately added to the appropriate product configuration or system instruction rather than inferred from developer conversation.
+A customer-facing behavior change must be deliberately added to the appropriate product configuration or system instruction rather than inferred from incidental development context.
 
 ## 11. Status
 
