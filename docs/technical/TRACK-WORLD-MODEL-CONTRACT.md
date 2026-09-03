@@ -1,27 +1,27 @@
 # VIGIL Track → World Model Technical Contract
 
 **Document:** Track → World Model Technical Contract  
-**Version:** 0.1  
+**Version:** 0.2  
 **Status:** Proposed for implementation  
 **Parent:** Spatial World Model Technical Design
 
 ## 1. Purpose
 
-This contract defines the boundary between temporal perception state (`Track`) and authoritative spatial state (`World Model`). It establishes the behavior that implementation must preserve as VIGIL evolves from a single-sensor deterministic tracker toward spatial/temporal fusion and multi-source world modeling.
+This contract defines the boundary between temporal perception state (`Track`), derived fusion state (`FusedEstimate`), and authoritative spatial state (`World Model`). It establishes the behavior that implementation must preserve as VIGIL evolves toward multi-source spatial/temporal fusion.
 
-The contract is intentionally implementation-independent where possible. It defines semantics first; classes, storage, frameworks, and persistence mechanisms are implementation details.
+The contract defines semantics first; classes, storage, frameworks, and persistence mechanisms are implementation details.
 
 ## 2. Scope
 
 This milestone covers:
 
-`Detection → TrackManager → Track → WorldModelUpdater → World Entity → World Model`
+`Detection → TrackManager → Track → Spatial / Temporal Fusion → FusedEstimate → WorldModelUpdater → World Entity → World Model`
 
-It establishes the interface needed for the later canonical lifecycle:
+It preserves the canonical lifecycle:
 
-`Observation → Detection → Track → Spatial/Temporal Fusion → Spatial World Model → Spatial/Environmental Services → Relevance & Priority → Presentation / Attention`
+`Observation → Detection → Track → Spatial / Temporal Fusion → Spatial World Model → Spatial / Environmental Services → Relevance & Priority → Presentation / Attention`
 
-Spatial/temporal fusion is not implemented by this contract. The boundary must, however, allow fused track state to enter the same World Model update path later.
+Fusion and track-derived state may both enter authoritative state, but neither may bypass `WorldModelUpdater`.
 
 ## 3. Responsibilities
 
@@ -32,45 +32,46 @@ Spatial/temporal fusion is not implemented by this contract. The boundary must, 
 It is responsible for:
 
 - associating detections with tracks according to its configured association policy;
-- maintaining track state and track lifecycle;
-- estimating track position and, when supported, velocity and heading;
+- maintaining track state and lifecycle;
+- estimating supported spatial/kinematic state;
 - maintaining contributing detection references;
-- maintaining track timestamps and confidence/quality information;
+- maintaining timestamps and confidence/quality information; and
 - exposing a stable track identifier.
 
-`TrackManager` does **not** own authoritative world entities and does not directly mutate `WorldModel`.
+`TrackManager` does not own authoritative world entities and does not directly mutate `WorldModel`.
 
-### 3.2 WorldModelUpdater
+### 3.2 Fusion Layer
 
-`WorldModelUpdater` is the boundary between track state and authoritative world state.
+The fusion layer combines compatible evidence into a `FusedEstimate`.
 
-For each accepted track update it shall:
+A fused estimate is derived state, not authoritative World Model state.
 
-1. validate the track state and required spatial/time semantics;
-2. determine the world entity associated with the track;
-3. create or update the entity without losing entity identity;
+Fusion must preserve confidence, uncertainty, freshness, validity, provenance, and material disagreement. Fusion must not directly mutate `WorldModel`.
+
+### 3.3 WorldModelUpdater
+
+`WorldModelUpdater` is the controlled boundary between derived perception/fusion state and authoritative world state.
+
+It shall:
+
+1. validate the incoming state and required spatial/time semantics;
+2. resolve the applicable Track → Entity or fused association;
+3. create or update the entity without losing authoritative entity identity;
 4. propagate supported spatial/kinematic state;
-5. preserve confidence, uncertainty, freshness, and validity semantics;
-6. preserve provenance links back through the track and detections;
-7. reject or ignore an update that is older than the authoritative current entity state according to the temporal rules in this contract;
-8. update the World Model only after validation succeeds;
-9. publish a state-change event only after the World Model state has changed.
+5. preserve confidence, uncertainty, freshness, validity, and provenance;
+6. reject older state from overwriting newer authoritative state;
+7. commit World Model state only after validation succeeds; and
+8. publish a state-change event only after the authoritative state has changed.
 
-The updater must not invent unsupported spatial information.
+A fused estimate that references multiple tracks must not silently merge already distinct World Entities.
 
-### 3.3 World Model
+### 3.4 World Model
 
 `WorldModel` owns the authoritative current projection of spatial state.
 
-It is responsible for:
+It stores current World Entities, exposes validity/freshness, and remains independent of the perception or fusion implementation that produced the state.
 
-- storing current World Entities;
-- returning current state and snapshots;
-- maintaining entity identity independently from track identity;
-- making current validity/freshness visible to consumers;
-- remaining independent of the perception implementation that produced the state.
-
-The World Model does not become a second tracker.
+The World Model does not become a tracker or fusion engine.
 
 ## 4. Identity Contract
 
@@ -78,128 +79,118 @@ VIGIL shall maintain separate identity domains:
 
 `Detection ID ≠ Track ID ≠ World Entity ID`
 
-Example:
+A detection identifies a perception result. A track identifies temporal continuity. A World Entity identifies the model-level representation consumed by downstream services.
 
-`det-481 → track-72 → entity-184`
+### 4.1 Track association
 
-A detection identifies a perception result. A track identifies a temporal association of detections. A world entity identifies the model-level representation consumed by spatial services and applications.
+For the initial implementation:
 
-### 4.1 Initial association policy
+- a previously unseen Track receives one deterministic World Entity ID;
+- subsequent updates from that Track preserve that entity;
+- association is maintained explicitly;
+- movement does not create a duplicate entity; and
+- sophisticated multi-source identity resolution remains deferred.
 
-For the first implementation, association from Track to World Entity shall be deterministic and stable:
+### 4.2 Fused association
 
-- a previously unseen track receives one new entity ID;
-- subsequent updates from that track update the same entity;
-- the association is maintained explicitly rather than deriving the entity ID from a display coordinate or detection ID;
-- a track update must not create a duplicate entity solely because the entity moved;
-- sophisticated multi-track/multi-sensor identity resolution is deferred to the fusion/identity layer.
+`FusedEstimate.associationId` is a deterministic association key for the estimate. It is **not** an authoritative physical identity and must not be interpreted as a World Entity ID.
 
-The implementation should maintain an explicit track-to-entity association rather than coupling the two identifiers.
+The current implementation derives this key deterministically from contributing track IDs. This is an implementation convenience that preserves deterministic behavior while leaving identity resolution replaceable.
 
-### 4.2 Identity uncertainty
+When a fused estimate references:
 
-A Track → Entity association is an association claim, not automatic proof of physical identity. The association must remain explainable and must be replaceable by a more capable identity/fusion policy later.
+- no previously associated tracks, the updater may allocate a new World Entity;
+- tracks already associated with the same World Entity, the updater may update that entity; or
+- tracks associated with different existing World Entities, the updater must reject the update as an unresolved identity conflict and must not mutate authoritative state.
 
 ## 5. Spatial State Contract
 
-The World Entity must represent spatial state using the coordinate conventions defined by the Spatial World Model specification.
+World Entity spatial state shall use the coordinate conventions and units defined by the Spatial World Model specification.
 
-Minimum required state for this milestone:
+Required supported state includes:
 
 - entity ID;
 - entity type;
-- current position, when available;
-- velocity, when available from the track;
+- current position when available;
+- velocity when available;
 - confidence;
-- last update/event time;
-- source track ID;
-- contributing detection references or an equivalent provenance path;
-- current validity/freshness state.
+- last event/update time;
+- contributing track reference(s);
+- contributing detection references or equivalent provenance; and
+- validity/freshness state.
 
-All spatial values must have an explicit coordinate-frame interpretation. Distances and velocities use the SWM documented units.
-
-The updater must not silently convert an unavailable position, velocity, or other value into zero.
+All spatial values must have an explicit coordinate-frame interpretation. Unavailable values remain unavailable; they must not become zero or another fabricated default.
 
 ## 6. Confidence and Uncertainty
 
 Confidence and uncertainty are independent properties.
 
-- **Confidence** describes how strongly the system supports a classification, association, or conclusion.
-- **Uncertainty** describes the expected error/range of an estimated quantity.
+- **Confidence** describes support for a classification, association, or conclusion.
+- **Uncertainty** describes expected error or imprecision in an estimated quantity.
 
-The updater must preserve confidence from the track where supported.
+Missing uncertainty remains unknown rather than becoming fabricated precision.
 
-If the current Track implementation does not yet provide a required uncertainty representation, the World Model must represent uncertainty as unavailable/unknown rather than fabricating precision.
+A fused estimate's `qualified` flag means the estimate is suitable for use as a qualified result under the active fusion policy. It does **not** mean that a conflict occurred.
 
-Priority is not part of this contract. Priority is applied later by the Relevance & Priority Engine and must not determine whether authoritative world state exists.
+Therefore:
+
+- compatible or single-evidence results may be `qualified`;
+- material disagreement that causes evidence reduction/deferment produces an unqualified result; and
+- quality metadata must explain the reason.
+
+Priority is outside this contract.
 
 ## 7. Temporal Contract
 
-Track updates contain an event/observation time representing when the tracked state is applicable, plus ingestion timing where available.
+Track and fused updates contain event/observation time representing when the state applies, plus ingestion/processing timing where available.
 
-The updater shall distinguish physical-event time from processing/ingestion order.
+The updater shall distinguish event time from processing order.
 
 ### 7.1 Ordering
 
-For the initial implementation:
+- newer or equal state may advance current authoritative state;
+- older state must not overwrite newer current state;
+- equal timestamps must be handled deterministically; and
+- rejected out-of-order information must not corrupt current state.
 
-- an update newer than or equal to the entity's authoritative last-update time may advance current state;
-- an update older than the authoritative current state must not overwrite newer current state;
-- rejected out-of-order updates may be retained by future history infrastructure, but they must not corrupt the current projection;
-- equal timestamps require deterministic handling and must not create duplicate entities.
-
-This rule provides a safe initial behavior while leaving room for later temporal fusion and replay logic.
+Fusion must apply its configured temporal compatibility policy before producing a fused estimate.
 
 ### 7.2 Freshness
 
-Freshness is derived from the relationship between current time and the most recent supported observation/update time, subject to the configured freshness policy.
+Freshness is derived from the supported observation/event time and configured policy.
 
-A loss of recent observations must not cause the entity to disappear from the World Model merely because it is no longer being observed.
+Stale state remains represented when appropriate and must not be presented as newly observed merely because processing occurred recently.
 
-## 8. Track Lifecycle to World State
+## 8. Lifecycle
 
 The intended Track lifecycle is:
 
 `TENTATIVE → CONFIRMED → DEGRADED → STALE → TERMINATED`
 
-The first implementation may support this lifecycle incrementally, but its semantics are fixed by the following rules:
+The World Model shall preserve identity when a track becomes stale or terminated.
 
-- **TENTATIVE:** insufficient history for normal confirmed confidence; entity may exist but must expose its provisional status.
-- **CONFIRMED:** sufficient supporting evidence for normal track operation.
-- **DEGRADED:** track remains usable but supporting evidence or quality has declined.
-- **STALE:** no sufficiently recent supporting update; the last known state remains represented but is not presented as current/fresh.
-- **TERMINATED:** the track is no longer maintained.
-
-Track termination does **not** mean deleting the World Entity or erasing history. The entity's current validity must indicate that its active supporting track has terminated.
-
-A future identity/fusion layer may keep a World Entity associated with other supporting tracks after one track terminates.
+A terminated Track does not by itself authorize deletion of its World Entity. Future fusion/identity layers may retain an entity through other supporting tracks.
 
 ## 9. Provenance Contract
 
-Every World Entity produced from a Track must preserve a traceable provenance path:
+Derived World Model state must retain a traceable provenance path:
 
-`World Entity → Track → Detection → Observation`
+`World Entity → Track(s) / Fused Estimate → Detection(s) → Observation(s) / Source(s)`
 
-For this milestone, the World Entity must retain at least:
+A fused update must preserve all contributing track and detection references that support the resulting state.
 
-- source track ID;
-- contributing detection IDs or equivalent references;
-- enough information to resolve the upstream evidence through the appropriate stores/interfaces when those stores exist.
-
-The updater must not replace provenance with only the latest detection.
+Provenance must not be reduced to only the latest contributing detection.
 
 ## 10. Update Semantics
 
-An accepted Track update follows this logical sequence:
+### 10.1 Track update
 
 ```text
 Track update
     ↓
 Validate
     ↓
-Resolve Track → Entity association
-    ↓
-Create or update World Entity
+Resolve Track → Entity
     ↓
 Apply spatial/kinematic state
     ↓
@@ -207,44 +198,36 @@ Apply confidence/uncertainty/freshness/validity
     ↓
 Preserve provenance
     ↓
-Commit World Model state
+Commit World Model
     ↓
 Emit state-change event
 ```
 
-The event is downstream of the authoritative state change.
+### 10.2 Fused estimate update
 
-The updater must be deterministic for identical valid inputs and existing state.
+```text
+Fused Estimate
+    ↓
+Validate
+    ↓
+Resolve contributing Track(s) → Entity
+    ↓
+Reject unresolved identity conflict
+    ↓
+Apply fused state
+    ↓
+Apply confidence/uncertainty/freshness/validity
+    ↓
+Preserve all contributing provenance
+    ↓
+Commit World Model
+    ↓
+Emit state-change event
+```
 
-## 11. Creation Rules
+Both paths terminate at the same controlled World Model update boundary.
 
-When a valid previously unseen Track is accepted:
-
-1. allocate a distinct World Entity ID;
-2. associate the Track with that Entity;
-3. populate the minimum required state;
-4. preserve the Track's provenance;
-5. insert the entity into the World Model;
-6. emit a `WorldEntityCreated` event after successful insertion.
-
-The entity must not be created from an invalid Track.
-
-## 12. Update Rules
-
-When a valid update arrives for an associated Track:
-
-1. locate the associated World Entity;
-2. compare update time with the entity's authoritative last-update time;
-3. reject an older update from overwriting newer state;
-4. apply newer/equal state deterministically;
-5. preserve entity ID;
-6. preserve and extend provenance;
-7. update validity/freshness as appropriate;
-8. emit `WorldEntityUpdated` only after a state change.
-
-Movement changes position; they do not create a new entity.
-
-## 13. Events
+## 11. Events
 
 Initial event vocabulary:
 
@@ -254,100 +237,72 @@ Initial event vocabulary:
 - `WorldEntityBecameStale`
 - `WorldEntityTerminated`
 
-Events should identify:
+Events should identify event ID, event time, entity ID, update origin, affected/contributing tracks, state transition where applicable, and relevant detection provenance.
 
-- event ID;
-- event time;
-- entity ID;
-- affected track ID when applicable;
-- state before and after when applicable;
-- relevant provenance/evidence references.
+The event is downstream of the authoritative state change.
 
-The first implementation may use a simple in-memory publisher/test sink. A distributed event bus is explicitly out of scope for this milestone.
+## 12. Error and Invalid-Input Rules
 
-## 14. Error and Invalid-Input Rules
+The updater must reject or quarantine invalid state, including:
 
-The updater must reject or quarantine updates when required information is invalid, including:
-
-- missing stable Track ID;
-- unsupported/invalid entity type;
-- non-finite spatial coordinates;
+- missing stable identity;
+- unsupported entity type;
+- non-finite spatial or kinematic values;
 - invalid timestamps;
-- incompatible coordinate-frame information;
-- invalid confidence values;
-- other values explicitly prohibited by the SWM contract.
+- incompatible frame information;
+- invalid confidence;
+- invalid uncertainty; or
+- explicitly invalid upstream evidence.
 
-Invalid input must not silently mutate authoritative world state.
+Invalid input must not silently mutate authoritative state.
 
-## 15. Determinism
+## 13. Determinism
 
-Given the same:
+Given the same initial World Model state, association state, valid input sequence, and configuration, VIGIL shall produce the same authoritative state and equivalent event sequence.
 
-- initial World Model state;
-- Track-to-Entity association state;
-- valid Track update sequence;
-- configuration;
+`associationId` is a deterministic key, not a substitute for authoritative identity.
 
-VIGIL shall produce the same World Model state and equivalent event sequence.
-
-No AI model or nondeterministic identity mechanism is required for this milestone.
-
-## 16. Concurrency
-
-The initial implementation may use an in-memory synchronization strategy appropriate to the selected runtime. Regardless of implementation, a single logical entity update must be atomic from the perspective of World Model consumers:
-
-**state update and its associated state-change event must have a defined ordering.**
-
-Concurrency optimization is secondary to correctness and determinism in this milestone.
-
-## 17. Required Tests
+## 14. Required Tests
 
 The implementation is not complete until tests demonstrate at least:
 
 1. a new Track creates exactly one World Entity;
-2. a subsequent update to the same Track updates the same Entity;
-3. movement changes entity position without creating a duplicate;
-4. velocity propagates when available;
-5. confidence propagates correctly;
-6. unavailable values remain unknown rather than becoming zero/default guesses;
-7. provenance remains traceable from Entity to Track and contributing Detections;
-8. older/out-of-order Track updates cannot overwrite newer current state;
-9. Track lifecycle changes are reflected in entity validity/state without deleting historical identity;
-10. stale entities remain represented;
-11. terminated tracks do not silently erase their entities;
-12. creation/update events occur only after the corresponding World Model mutation;
-13. invalid Track input cannot corrupt authoritative state;
-14. repeated identical valid updates are deterministic;
-15. separate Tracks initially produce separate Entity IDs.
+2. a subsequent Track update preserves the same Entity;
+3. movement does not create a duplicate;
+4. velocity and confidence propagate when supported;
+5. unavailable uncertainty remains unknown;
+6. provenance remains traceable;
+7. older updates cannot overwrite newer state;
+8. stale and terminated tracks retain represented identity;
+9. events occur only after state mutation;
+10. invalid input cannot corrupt authoritative state;
+11. repeated identical updates are deterministic;
+12. separate Tracks initially produce separate Entity IDs;
+13. a valid FusedEstimate enters the World Model only through `WorldModelUpdater`;
+14. multiple contributing tracks are preserved as provenance;
+15. an unresolved fused association referencing distinct existing entities is rejected without mutation;
+16. a qualified result represents suitability under policy rather than conflict occurrence; and
+17. material disagreement is visible through quality metadata and does not get hidden by blind averaging.
 
-## 18. Deferred Capabilities
+## 15. Deferred Capabilities
 
-The following are intentionally deferred rather than left ambiguous:
+The following remain intentionally deferred:
 
-- sophisticated multi-sensor identity resolution;
-- probabilistic multi-hypothesis tracking;
-- full covariance/uncertainty mathematics if not yet supported by Track;
-- spatial/temporal fusion algorithms;
+- sophisticated multi-source identity resolution;
+- probabilistic multi-hypothesis association;
+- full covariance/state-estimation mathematics;
+- spatial transforms beyond the currently supported frame model;
+- automatic calibration;
 - persistent database implementation;
 - distributed event infrastructure;
-- advanced relationship and area recomputation;
-- AI-driven identity decisions;
-- presentation and attention prioritization.
+- advanced relationship/area recomputation;
+- AI-driven identity decisions; and
+- presentation/attention prioritization.
 
-These capabilities must integrate through the contracts defined here rather than bypassing the World Model boundary.
+Deferred capabilities must integrate through this contract and must not bypass the World Model boundary.
 
-## 19. Implementation Boundary
+## 16. Architectural Invariant
 
-The first code implementation should introduce a dedicated `WorldModelUpdater` and strengthen the minimum `WorldEntity` representation needed to satisfy this contract.
+> **Track state is perception/temporal state. FusedEstimate is derived fusion state. World Entity state is authoritative spatial world state. WorldModelUpdater is the controlled boundary between them.**
 
-The implementation should preserve the existing VIGIL spatial primitives and coordinate/unit conventions rather than introducing competing spatial representations.
-
-Technology versions and libraries are implementation choices. When coding begins, the repository's current toolchain should be evaluated for supported, maintainable versions rather than freezing the project to an older external application's dependency versions.
-
-## 20. Architectural Invariant
-
-The following invariant is mandatory:
-
-> **Track state is perception/temporal state. World Entity state is authoritative spatial world state. WorldModelUpdater is the controlled boundary between them.**
-
-The Track Manager must never become the World Model, and the World Model must never become the Track Manager.
+The Track Manager must never become the World Model, and the World Model must never become the Track Manager or fusion engine.
