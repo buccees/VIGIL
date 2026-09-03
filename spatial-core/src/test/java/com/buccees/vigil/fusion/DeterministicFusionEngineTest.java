@@ -33,7 +33,7 @@ class DeterministicFusionEngineTest {
         assertEquals(2.8571428571, result.positionUncertaintyMeters().orElseThrow(), 1.0e-9);
         assertEquals(List.of("camera-a", "camera-b"), result.sourceIds());
         assertEquals(List.of("track-a", "track-b"), result.trackIds());
-        assertFalse(result.qualified());
+        assertTrue(result.qualified());
     }
 
     @Test
@@ -43,6 +43,7 @@ class DeterministicFusionEngineTest {
 
         FusedEstimate result = engine.fuse(List.of(a, b), T0).orElseThrow();
         assertEquals(List.of("camera-a"), result.sourceIds());
+        assertTrue(result.qualified());
     }
 
     @Test
@@ -52,16 +53,17 @@ class DeterministicFusionEngineTest {
 
         FusedEstimate result = engine.fuse(List.of(a, b), T0.plusMillis(100)).orElseThrow();
         assertTrue(result.positionUncertaintyMeters().isEmpty());
+        assertTrue(result.qualified());
     }
 
     @Test
-    void materialConflictIsQualifiedAndDoesNotBlindlyAverage() {
+    void materialConflictIsUnqualifiedAndDoesNotBlindlyAverage() {
         FusionEvidence a = evidence("camera-a", "track-a", 0, 0, 0, 0.9, 1.0, 0);
         FusionEvidence b = evidence("camera-b", "track-b", 10, 0, 0, 0.4, 1.0, 50);
 
         FusedEstimate result = engine.fuse(List.of(a, b), T0.plusMillis(100)).orElseThrow();
 
-        assertTrue(result.qualified());
+        assertFalse(result.qualified());
         assertEquals(0.0, result.position().xM(), 1.0e-9);
         assertTrue(result.qualityNote().contains("Material disagreement"));
     }
