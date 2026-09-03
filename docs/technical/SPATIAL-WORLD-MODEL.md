@@ -1,7 +1,7 @@
 # VIGIL Spatial World Model — Technical Design
 
 **Document:** Spatial World Model Technical Design  
-**Version:** 0.1  
+**Version:** 0.2  
 **Status:** Proposed for implementation review  
 **Parent:** VIGIL System Architecture
 
@@ -415,7 +415,7 @@ Spatial services must return uncertainty and validity information where appropri
 
 The recommended update pipeline is:
 
-`Observation → Detection → Track → Entity Belief → Relationship/Area Updates → Current State Projection → Events`
+`Observation → Detection → Track → Spatial/Temporal Fusion → Entity Belief → Relationship/Area Updates → Current State Projection → Events / History`
 
 Rules:
 
@@ -423,11 +423,14 @@ Rules:
 2. Validate timestamps and coordinate frames.
 3. Reject or quarantine invalid sensor data.
 4. Associate detections with tracks using explicit confidence.
-5. Update entity beliefs without erasing provenance.
-6. Recalculate dependent relationships when relevant state changes.
-7. Emit state-change events.
-8. Mark stale data as stale rather than deleting its history.
-9. Allow later evidence to revise a belief while preserving the previous belief in history.
+5. Perform spatial/temporal fusion without erasing provenance or unsupported uncertainty.
+6. Update entity beliefs without erasing provenance.
+7. Recalculate dependent relationships when relevant state changes.
+8. Emit state-change events after the relevant world-state change.
+9. Mark stale data as stale rather than deleting its history.
+10. Allow later evidence to revise a belief while preserving the previous belief in history.
+
+The lifecycle describes the intended complete flow. The current implementation may provide only a subset of these stages.
 
 ## 21. Conceptual Interfaces
 
@@ -497,11 +500,27 @@ AI output must identify:
 
 AI must not silently rewrite authoritative world state or security permissions.
 
-Preferred consequential-action chain:
+AI is an optional information-analysis/query layer over structured world state, evidence, and history. It is not a physical-action authority.
 
-`Observation → Evidence → Analysis → Confidence/Uncertainty → Proposed Action → Test/Simulation → Security Review → Human Approval → Execution → Verification → Audit`
+## 25. Information & Event Output / Integration
 
-## 25. Simulation and Test Contracts
+VIGIL may expose structured information and events to authorized external consumers.
+
+Possible outputs include:
+
+- structured world-state information
+- events and state-change notifications
+- user-attention requests
+- navigation, search, or inspection requests
+- simulation results
+- analysis results
+- other authorized information interfaces
+
+This layer is an **Information & Event Output / Integration boundary**. It communicates information to authorized applications, services, user interfaces, or other systems; it does not turn VIGIL into an action or actuator system.
+
+Any consequential physical action resulting from an external integration is outside VIGIL's core information/presentation boundary and requires its own authorized control, safety, and verification architecture.
+
+## 26. Simulation and Test Contracts
 
 The SWM must be testable without live hardware.
 
@@ -536,7 +555,7 @@ Core deterministic tests should verify:
 - target following
 - replay determinism
 
-## 26. Example Scenario
+## 27. Example Scenario
 
 A camera observes a vehicle.
 
@@ -553,7 +572,7 @@ A camera observes a vehicle.
 
 At every step, the system can trace the current belief back through tracks, detections, observations, and sensor state.
 
-## 27. Non-Goals and Safety Boundaries
+## 28. Non-Goals and Safety Boundaries
 
 The Spatial World Model does **not** implement:
 
@@ -567,7 +586,7 @@ The Spatial World Model does **not** implement:
 
 Those boundaries do not prevent VIGIL from providing generic spatial targeting, navigation, object selection, situational awareness, authorized security monitoring, or simulation.
 
-## 28. Open Design Decisions
+## 29. Open Design Decisions
 
 The following decisions should be finalized before production implementation:
 
@@ -584,7 +603,7 @@ The following decisions should be finalized before production implementation:
 11. API versioning strategy.
 12. Rules for conflict resolution between sensors and stale beliefs.
 
-## 29. Implementation Order
+## 30. Implementation Order
 
 Implementation should proceed in this order:
 
@@ -605,7 +624,7 @@ Implementation should proceed in this order:
 
 No UI should become the authoritative owner of spatial state.
 
-## 30. Definition of Done for the Spatial Core
+## 31. Definition of Done for the Spatial Core
 
 The Spatial Core is ready for its first application integration when it can:
 
