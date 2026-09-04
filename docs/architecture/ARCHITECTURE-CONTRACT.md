@@ -2,7 +2,7 @@
 
 **Project:** VIGIL  
 **Document:** Architecture Contract  
-**Version:** 0.3  
+**Version:** 0.4  
 **Status:** Approved architectural baseline  
 **Audience:** Developers, reviewers, maintainers, and future contributors
 
@@ -102,7 +102,9 @@ Fusion SHALL preserve confidence, uncertainty, freshness, validity, provenance, 
 
 Fusion SHALL NOT directly mutate the authoritative World Model.
 
-Fusion output SHALL cross into authoritative world state only through the controlled World Model update boundary defined by the Track → World Model contract.
+Fusion output SHALL cross into authoritative world state only through the controlled `WorldModelUpdater` boundary.
+
+The `WorldModelUpdater` boundary is the authoritative Track → World Model and Fusion → World Model mutation boundary. No other contract or implementation component may create an alternate authoritative write path.
 
 Fusion SHALL NOT force identity, precision, or certainty when evidence is unresolved or insufficient.
 
@@ -110,13 +112,15 @@ Fusion SHALL NOT force identity, precision, or certainty when evidence is unreso
 
 The Spatial World Model SHALL be the authoritative current projection of VIGIL's supported environmental belief.
 
+The term **supported environmental belief** means the current modelled representation supported by available validated evidence; it does not assert objective certainty about the physical environment.
+
 World Model identity SHALL remain distinct from detection and track identity.
 
 The World Model SHALL expose validity and freshness and SHALL retain explicit unknown, stale, invalid, insufficient-evidence, calibration-uncertain, and timestamp-uncertain states where applicable.
 
 ### 5.6 World Model Updates
 
-All track-derived or fusion-derived updates to authoritative world state SHALL pass through the controlled WorldModelUpdater boundary.
+All track-derived or fusion-derived updates to authoritative world state SHALL pass through the controlled `WorldModelUpdater` boundary.
 
 The updater SHALL validate input before committing state, preserve entity identity, reject older state from overwriting newer authoritative state, preserve provenance, and emit state-change events only after successful state mutation.
 
@@ -341,13 +345,15 @@ This architecture contract SHALL be read together with the following component c
 - `AUTONOMY-HUMAN-DECISION-BOUNDARY.md` — planned component contract;
 - `SPATIAL-WORLD-MODEL.md` — current technical contract;
 - `TRACK-WORLD-MODEL-CONTRACT.md` — planned component contract;
-- `SPATIAL-TEMPORAL-FUSION-CONTRACT.md` — planned component contract;
+- `SPATIAL-TEMPORAL-FUSION-CONTRACT.md` — current technical contract under implementation review; 
 - `HUMAN-INTERACTION-VOICE-CONTRACT.md` — planned component contract; and
 - `DOCUMENTATION-RULES.md` — planned supporting contract.
 
 A contract listed as planned SHALL NOT be treated as an implemented normative dependency until it exists in the repository and has been reconciled with this architecture contract.
 
-Component-specific technical contracts SHALL control detailed behavior within their defined boundaries once established.
+A current technical contract SHALL be treated as a normative dependency within its defined boundary once it exists and has been reconciled with this architecture contract, regardless of whether its implementation is production-ready.
+
+Component-specific technical contracts SHALL control detailed behavior within their defined boundaries once established and reconciled.
 
 Where a component contract imposes a stricter requirement than this architecture contract, the stricter requirement SHALL apply within that component boundary.
 
@@ -394,7 +400,8 @@ A contract change SHALL identify:
 At the time of this version:
 
 - the architecture specification on the default branch is version 0.3;
-- the Spatial World Model technical design is version 0.2 and proposed for implementation review; and
+- the Spatial World Model technical design is version 0.2 and proposed for implementation review;
+- the Spatial / Temporal Fusion Contract is version 0.1 and proposed for implementation review; and
 - this document establishes the contractual architecture layer without replacing detailed technical contracts.
 
 Additional component contracts named in this document are planned dependencies until they are present in the repository. Each SHALL be reconciled with this contract before dependent implementation relies on it.
