@@ -2,7 +2,7 @@
 
 **Project:** VIGIL  
 **Document:** Architecture Contract  
-**Version:** 0.2  
+**Version:** 0.3  
 **Status:** Approved architectural baseline  
 **Audience:** Developers, reviewers, maintainers, and future contributors
 
@@ -336,16 +336,18 @@ Material evidence disagreement SHALL remain visible to the fusion and downstream
 
 ## 17. Contract Relationship and Precedence
 
-This architecture contract SHALL be read together with the following normative or implementation contracts:
+This architecture contract SHALL be read together with the following component contracts and planned contract dependencies:
 
-- `AUTONOMY-HUMAN-DECISION-BOUNDARY.md`
-- `SPATIAL-WORLD-MODEL.md`
-- `TRACK-WORLD-MODEL-CONTRACT.md`
-- `SPATIAL-TEMPORAL-FUSION-CONTRACT.md`
-- `HUMAN-INTERACTION-VOICE-CONTRACT.md`
-- `DOCUMENTATION-RULES.md`
+- `AUTONOMY-HUMAN-DECISION-BOUNDARY.md` — planned component contract;
+- `SPATIAL-WORLD-MODEL.md` — current technical contract;
+- `TRACK-WORLD-MODEL-CONTRACT.md` — planned component contract;
+- `SPATIAL-TEMPORAL-FUSION-CONTRACT.md` — planned component contract;
+- `HUMAN-INTERACTION-VOICE-CONTRACT.md` — planned component contract; and
+- `DOCUMENTATION-RULES.md` — planned supporting contract.
 
-Component-specific technical contracts SHALL control detailed behavior within their defined boundaries.
+A contract listed as planned SHALL NOT be treated as an implemented normative dependency until it exists in the repository and has been reconciled with this architecture contract.
+
+Component-specific technical contracts SHALL control detailed behavior within their defined boundaries once established.
 
 Where a component contract imposes a stricter requirement than this architecture contract, the stricter requirement SHALL apply within that component boundary.
 
@@ -395,4 +397,4 @@ At the time of this version:
 - the Spatial World Model technical design is version 0.2 and proposed for implementation review; and
 - this document establishes the contractual architecture layer without replacing detailed technical contracts.
 
-Additional component contracts named in this document are normative dependencies when present and SHALL be reconciled with this contract before dependent implementation relies on them.
+Additional component contracts named in this document are planned dependencies until they are present in the repository. Each SHALL be reconciled with this contract before dependent implementation relies on it.
