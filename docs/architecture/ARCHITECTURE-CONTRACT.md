@@ -391,8 +391,8 @@ A contract change SHALL identify:
 
 At the time of this version:
 
-- the architecture specification on the default branch is version 0.2;
-- the Spatial World Model technical design is version 0.1 and proposed for implementation review; and
+- the architecture specification on the default branch is version 0.3;
+- the Spatial World Model technical design is version 0.2 and proposed for implementation review; and
 - this document establishes the contractual architecture layer without replacing detailed technical contracts.
 
 Additional component contracts named in this document are normative dependencies when present and SHALL be reconciled with this contract before dependent implementation relies on them.
