@@ -607,18 +607,19 @@ Implementation SHALL proceed in this architectural order:
 2. Time and uncertainty primitives.
 3. Observation and provenance types.
 4. Detection and track types.
-5. World entity and area types.
-6. Relationships and target types.
-7. Sensor registry and calibration state.
-8. Spatial query services.
-9. World-model update engine.
-10. Event/history layer.
-11. Local persistence and replay.
-12. Deterministic simulator.
-13. Automated test suite.
-14. Application-mode adapters.
+5. Spatial/temporal fusion interfaces and deterministic fusion primitives.
+6. World entity and area types.
+7. Relationships and target types.
+8. Sensor registry and calibration state.
+9. Spatial query services.
+10. World-model update engine and controlled `WorldModelUpdater` boundary.
+11. Event/history layer.
+12. Local persistence and replay.
+13. Deterministic simulator.
+14. Automated test suite.
+15. Application-mode adapters.
 
-No UI SHALL become the authoritative owner of spatial state.
+The implementation SHALL preserve the lifecycle and authority order defined in Section 20. In particular, Track Continuity SHALL precede Spatial/Temporal Fusion, and Spatial/Temporal Fusion SHALL precede authoritative World Model mutation through `WorldModelUpdater`. No implementation step SHALL bypass or collapse those authority boundaries merely because the underlying data structures are implemented in the same library or process.
 
 ## 30. Definition of Done for the Spatial Core
 
