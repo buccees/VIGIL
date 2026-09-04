@@ -400,7 +400,7 @@ A contract change SHALL identify:
 At the time of this version:
 
 - the architecture specification on the default branch is version 0.3;
-- the Spatial World Model technical design is version 0.2 and proposed for implementation review;
+- the Spatial World Model technical design is version 0.3 and proposed for implementation review;
 - the Spatial / Temporal Fusion Contract is version 0.1 and proposed for implementation review; and
 - this document establishes the contractual architecture layer without replacing detailed technical contracts.
 
