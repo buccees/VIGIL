@@ -423,7 +423,7 @@ Spatial services SHALL return uncertainty and validity information where appropr
 
 The authoritative information lifecycle SHALL be:
 
-`Observation → Detection → Track → Entity Belief → Relationship/Area Updates → Current State Projection → Events`
+`Observation → Detection → Track → Spatial/Temporal Fusion → Entity Belief → Relationship/Area Updates → Current State Projection → Events`
 
 Rules:
 
@@ -431,12 +431,13 @@ Rules:
 2. Timestamps and coordinate frames SHALL be validated before they are used to derive authoritative spatial state.
 3. Invalid sensor data SHALL be rejected or quarantined according to the applicable input contract.
 4. Detections SHALL be associated with tracks using explicit confidence or uncertainty.
-5. Entity beliefs SHALL be updated without erasing provenance.
-6. Dependent relationships SHALL be recalculated when relevant authoritative state changes.
-7. State-change events SHALL be emitted only after the corresponding authoritative state mutation succeeds.
-8. Stale data SHALL be marked stale rather than deleting its history.
-9. Later evidence MAY revise a belief while the previous belief remains available in history according to retention policy.
-10. Track- or fusion-derived authoritative state SHALL cross the Track → World Model boundary only through `WorldModelUpdater`.
+5. Spatial/temporal fusion SHALL operate on validated observations, detections, tracks, or other authorized evidence according to the applicable fusion contract.
+6. Entity beliefs SHALL be updated from validated fusion output without erasing provenance.
+7. Dependent relationships SHALL be recalculated when relevant authoritative state changes.
+8. State-change events SHALL be emitted only after the corresponding authoritative state mutation succeeds.
+9. Stale data SHALL be marked stale rather than deleting its history.
+10. Later evidence MAY revise a belief while the previous belief remains available in history according to retention policy.
+11. Track- or fusion-derived authoritative state SHALL cross the Track → World Model boundary only through `WorldModelUpdater`.
 
 ## 21. Conceptual Interfaces
 
