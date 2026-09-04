@@ -1,7 +1,7 @@
 # VIGIL Spatial World Model — Technical Design
 
 **Document:** Spatial World Model Technical Design  
-**Version:** 0.2  
+**Version:** 0.3  
 **Status:** Proposed for implementation review  
 **Parent:** VIGIL System Architecture
 
@@ -21,7 +21,7 @@ The model SHALL support both offline/local operation and connected deployments.
 4. **Time is first-class.** Every observation and relevant state transition SHALL have an explicit time model.
 5. **Uncertainty is first-class.** Spatial estimates and identity associations SHALL carry uncertainty or an explicit unknown state rather than unsupported precision.
 6. **Identity is layered.** Detection, track, and world-entity identity SHALL remain distinct.
-7. **The world model owns spatial truth.** Navigation and other applications consume authoritative spatial state; they SHALL NOT create competing spatial authorities.
+7. **The world model is the authoritative source of VIGIL's supported spatial state.** Navigation and other applications SHALL consume that authoritative state and SHALL NOT create competing spatial authorities. Authoritative status SHALL mean authority within VIGIL's state model; it SHALL NOT imply objective certainty about the physical environment.
 8. **History is retained separately from current state.** Current state answers what is currently believed; history answers what happened and why, subject to retention policy.
 9. **Security follows the data.** Access, provenance, authorization, audit, and retention SHALL apply throughout the data lifecycle.
 10. **Deterministic core, replaceable perception.** Deterministic spatial calculations SHALL be testable without requiring an AI model or live hardware.
@@ -441,7 +441,7 @@ Rules:
 
 ## 21. Conceptual Interfaces
 
-The first implementation should expose interfaces approximately equivalent to:
+The first implementation MAY expose interfaces equivalent in responsibility to the following conceptual components:
 
 ```text
 ObservationStore
@@ -459,7 +459,7 @@ WorldModelUpdater
 EventPublisher
 ```
 
-These are conceptual contracts, not a commitment to a particular programming language, database, or distributed architecture.
+The names and programming-language representations of these components are implementation-defined. Their responsibilities SHALL remain consistent with the applicable sections of this technical design and higher-level contracts.
 
 ## 22. Persistence Strategy
 
@@ -558,85 +558,85 @@ A camera observes a vehicle.
 2. Perception creates detection `det-481` with vehicle classification confidence.
 3. The tracker associates `det-481` with `track-72` with an explicit association state.
 4. Spatial/temporal fusion estimates the vehicle at a world coordinate with an uncertainty bound.
-5. The controlled `WorldModelUpdater` validates the derived state and the SWM associates `track-72` with `entity-184` with explicit association confidence.
-6. The entity is determined to be inside `area-12` based on geometry and applicable evidence.
-7. A user selects `entity-184` as a spatial target.
-8. The target service reports its current position, distance, bearing, and validity.
-9. A later observation changes the estimated position; the target updates because it references the world entity rather than a stale screen coordinate.
-10. If the camera becomes uncalibrated, the dependent spatial estimate becomes degraded or invalid and the target reports reduced validity rather than silently presenting the old position as current.
+5. The controlled `WorldModelUpdater` validates the derived state and the SWM associates `track-72` with `entity-184` with an association confidence.
+6. The entity is determined to be inside `area-12` using the authoritative spatial state.
+7. The user selects `entity-184` as a target.
+8. The target reports its current position, distance, bearing, and validity state.
+9. A later observation updates the fused estimate and the target follows the entity.
+10. The camera becomes uncalibrated. The dependent spatial estimate becomes degraded or invalid, and the target's validity is reduced. The previous position is not presented as current merely because it remains in history.
 
-At every step, the system can trace the current belief back through tracks, detections, observations, and sensor state.
+This scenario demonstrates the traceability chain from sensor observation through perception, tracking, fusion, World Model update, spatial services, and user presentation.
 
 ## 27. Non-Goals and Safety Boundaries
 
-The Spatial World Model does **not** implement:
+The Spatial World Model does not implement:
 
-- weapon firing control
-- ballistic firing solutions
-- automated weapon selection or engagement
-- trigger or actuator control
-- covert surveillance mechanisms
-- bypassing access controls
-- autonomous consequential actions without an authorized control layer
+- weapon firing control;
+- ballistic firing solutions;
+- automated weapon selection or engagement;
+- trigger or actuator control;
+- covert surveillance mechanisms;
+- bypassing access controls; or
+- autonomous consequential actions without an authorized control layer.
 
-Those boundaries do not prevent VIGIL from providing generic spatial targeting, navigation, object selection, situational awareness, authorized security monitoring, or simulation.
+Generic spatial targeting, navigation, object selection, situational awareness, authorized security monitoring, and simulation remain within scope.
 
 ## 28. Open Design Decisions
 
 The following decisions SHALL be finalized before production implementation depends on them:
 
-1. Exact geodetic reference and altitude datum.
-2. Exact local-world coordinate convention and axis orientation.
-3. Typed representation for covariance/error bounds.
-4. Persistence technology for the initial implementation.
-5. Event serialization format.
-6. Language/module boundaries for the Spatial Core.
-7. Retention policies for raw observations and media.
-8. Identity-association policy and thresholds.
-9. Authorization model and data classifications.
-10. Replay file format for simulator/test fixtures.
-11. API versioning strategy.
-12. Rules for conflict resolution between sensors and stale beliefs.
+1. exact geodetic reference system and altitude datum;
+2. exact local-world coordinate convention and axis orientation;
+3. covariance/error-bound representation and serialization;
+4. persistence technology;
+5. event serialization format;
+6. programming-language and module boundaries;
+7. retention policies for raw observations and media;
+8. identity-association policies and thresholds;
+9. authorization model and data classifications;
+10. replay format;
+11. API versioning strategy; and
+12. conflict-resolution rules between sensors and stale beliefs.
 
-Until an open decision is finalized by the applicable contract, implementations SHALL NOT silently assume a value that materially changes semantic behavior.
+Until these decisions are finalized, implementations SHALL NOT silently assume a value that materially changes semantic behavior.
 
 ## 29. Implementation Order
 
-Implementation SHALL proceed in this architectural order:
+The initial implementation should proceed in the following order:
 
-1. Coordinate and unit primitives.
-2. Time and uncertainty primitives.
-3. Observation and provenance types.
-4. Detection and track types.
-5. Spatial/temporal fusion interfaces and deterministic fusion primitives.
-6. World entity and area types.
-7. Relationships and target types.
-8. Sensor registry and calibration state.
-9. Spatial query services.
-10. World-model update engine and controlled `WorldModelUpdater` boundary.
-11. Event/history layer.
-12. Local persistence and replay.
-13. Deterministic simulator.
-14. Automated test suite.
-15. Application-mode adapters.
+1. coordinate and unit primitives;
+2. time and uncertainty primitives;
+3. observation and provenance types;
+4. detection and track types;
+5. spatial/temporal fusion interfaces and deterministic fusion primitives;
+6. world entity and area types;
+7. relationship and target types;
+8. sensor registry and calibration state;
+9. spatial query services;
+10. world-model update engine and controlled `WorldModelUpdater` boundary;
+11. event/history layer;
+12. local persistence and replay;
+13. deterministic simulator;
+14. automated test suite; and
+15. application-mode adapters.
 
 The implementation SHALL preserve the lifecycle and authority order defined in Section 20. In particular, Track Continuity SHALL precede Spatial/Temporal Fusion, and Spatial/Temporal Fusion SHALL precede authoritative World Model mutation through `WorldModelUpdater`. No implementation step SHALL bypass or collapse those authority boundaries merely because the underlying data structures are implemented in the same library or process.
 
 ## 30. Definition of Done for the Spatial Core
 
-The Spatial Core is ready for its first application integration only when it can:
+The Spatial Core is ready for first application integration only when it can:
 
-- represent observations, detections, tracks, entities, areas, relationships, and targets;
-- transform coordinates deterministically;
+- represent observations, detections, tracks, world entities, areas, relationships, and targets;
+- perform deterministic coordinate transformations;
 - represent time, confidence, uncertainty, and sensor health;
 - maintain current state and historical events separately;
-- explain the provenance of derived state;
+- preserve provenance for derived state;
 - handle stale and invalid inputs safely;
-- replay recorded observations deterministically;
-- support generic spatial targeting without weapon-control logic;
-- operate entirely locally in a test environment; and
-- pass an automated simulator-backed test suite.
+- replay recorded inputs deterministically where required;
+- support generic spatial targeting without weapon-control functionality;
+- operate in a local test environment; and
+- pass an automated simulator-backed test suite covering the defined contracts.
 
----
+No UI component SHALL become the authoritative owner of spatial state.
 
-**Next implementation artifact:** `Spatial Core` library and its simulator-backed automated tests.
+The next implementation artifact should be the Spatial Core library with simulator-backed automated tests.
