@@ -15,7 +15,7 @@ Start with `docs/architecture/VIGIL-ARCHITECTURE-SPEC.md`.
 Current baseline:
 
 - Architecture Specification: version 0.3
-- Architecture Contract: version 0.2
+- Architecture Contract: version 0.3
 - Spatial World Model Technical Design: version 0.2
 
 ## Design Principle
