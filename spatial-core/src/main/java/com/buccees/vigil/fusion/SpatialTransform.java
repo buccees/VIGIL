@@ -29,6 +29,13 @@ public record SpatialTransform(
                 sourcePosition.zM() + translationMeters.zM());
     }
 
+    /** Applies the translation-only frame relationship to a velocity vector. */
+    public LocalPosition applyVelocity(LocalPosition sourceVelocityMetersPerSecond) {
+        Objects.requireNonNull(sourceVelocityMetersPerSecond, "sourceVelocityMetersPerSecond");
+        if (!valid) throw new IllegalStateException("Cannot apply an invalid spatial transform");
+        return sourceVelocityMetersPerSecond;
+    }
+
     public boolean connects(String source, String destination) {
         return sourceFrameId.equals(source) && destinationFrameId.equals(destination);
     }

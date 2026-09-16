@@ -40,7 +40,8 @@ class DeterministicFusionEngineTest {
     @Test
     void validSpatialTransformAlignsEvidenceIntoFusionFrame() {
         FusionEvidence a = evidence("camera-a", "track-a", 0, 0, 0, 0.8, null, 0);
-        FusionEvidence b = new FusionEvidence("camera-b", track("track-b", -1, 0, 0, 0.8, 50),
+        FusionEvidence b = new FusionEvidence("camera-b", trackWithVelocity("track-b", -1, 0, 0, 0.8, 50,
+                new LocalPosition(2, 0, 0)),
                 "sensor-b", T0.plusMillis(50), T0.plusMillis(60), null);
         SpatialTransform transform = new SpatialTransform("sensor-b", "local-world",
                 new LocalPosition(1, 0, 0), true, "calibration:sensor-b-to-local-world:v1");
@@ -49,6 +50,7 @@ class DeterministicFusionEngineTest {
         FusedEstimate result = transformedEngine.fuse(List.of(a, b), T0.plusMillis(100)).orElseThrow();
 
         assertEquals(0.0, result.position().xM(), 1.0e-9);
+        assertEquals(1.5, result.velocityMetersPerSecond().xM(), 1.0e-9);
         assertEquals(List.of("calibration:sensor-b-to-local-world:v1"), result.transformProvenance());
         assertEquals(List.of("camera-a", "camera-b"), result.sourceIds());
     }
@@ -210,6 +212,13 @@ class DeterministicFusionEngineTest {
 
     private static Track track(String id, double x, double y, double z, double confidence, long eventOffsetMs) {
         return trackWithState(id, x, y, z, confidence, eventOffsetMs, TrackLifecycleState.CONFIRMED);
+    }
+
+    private static Track trackWithVelocity(String id, double x, double y, double z, double confidence,
+                                           long eventOffsetMs, LocalPosition velocity) {
+        return new Track(id, EntityType.VEHICLE, new LocalPosition(x, y, z), velocity,
+                new Confidence(confidence), T0.plusMillis(eventOffsetMs),
+                List.of(id + "-detection"), TrackLifecycleState.CONFIRMED);
     }
 
     private static Track trackWithState(String id, double x, double y, double z, double confidence,

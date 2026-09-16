@@ -85,6 +85,9 @@ public final class DeterministicFusionEngine {
                 continue;
             }
             LocalPosition position = transform == null ? candidate.position() : transform.apply(candidate.position());
+            LocalPosition velocity = transform == null
+                    ? candidate.track().velocityMetersPerSecond()
+                    : transform.applyVelocity(candidate.track().velocityMetersPerSecond());
             if (temporalSkew(first.eventTime(), candidate.eventTime()).compareTo(policy.maxEventTimeSkew()) > 0) {
                 exclusions.add(new FusionExclusion(candidate.evidenceId(), FusionExclusionReason.TEMPORAL_SKEW));
                 continue;
@@ -94,7 +97,7 @@ public final class DeterministicFusionEngine {
                 continue;
             }
             compatible.add(candidate);
-            resolved.add(new ResolvedEvidence(candidate, position, transform));
+            resolved.add(new ResolvedEvidence(candidate, position, velocity, transform));
         }
         if (compatible.isEmpty()) return new FusionResult(Optional.empty(), List.copyOf(exclusions));
 
@@ -143,9 +146,9 @@ public final class DeterministicFusionEngine {
             x += item.position().xM() * fraction;
             y += item.position().yM() * fraction;
             z += item.position().zM() * fraction;
-            vx += evidenceItem.track().velocityMetersPerSecond().xM() * fraction;
-            vy += evidenceItem.track().velocityMetersPerSecond().yM() * fraction;
-            vz += evidenceItem.track().velocityMetersPerSecond().zM() * fraction;
+            vx += item.velocity().xM() * fraction;
+            vy += item.velocity().yM() * fraction;
+            vz += item.velocity().zM() * fraction;
             weightedConfidence += evidenceItem.confidence().value() * fraction;
             sources.add(evidenceItem.sourceId());
             tracks.add(evidenceItem.track().id());
@@ -182,7 +185,8 @@ public final class DeterministicFusionEngine {
                 .orElse(null);
     }
 
-    private record ResolvedEvidence(FusionEvidence evidence, LocalPosition position, SpatialTransform transform) {}
+    private record ResolvedEvidence(FusionEvidence evidence, LocalPosition position,
+                                    LocalPosition velocity, SpatialTransform transform) {}
 
     /** Structured diagnostic result for a fusion attempt. */
     public record FusionResult(Optional<FusedEstimate> estimate, List<FusionExclusion> exclusions) {
