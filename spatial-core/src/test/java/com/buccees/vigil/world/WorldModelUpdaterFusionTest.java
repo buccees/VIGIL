@@ -90,6 +90,7 @@ class WorldModelUpdaterFusionTest {
                 List.of("source-a", "source-b"),
                 trackIds,
                 detections,
+                List.of(),
                 true,
                 "test estimate");
     }
