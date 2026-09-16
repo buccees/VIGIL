@@ -141,7 +141,29 @@ class DeterministicFusionEngineTest {
 
         assertTrue(result.estimate().isEmpty());
         assertEquals(1, result.exclusions().size());
+        assertEquals("camera-a:track-a", result.exclusions().get(0).evidenceId());
         assertEquals(DeterministicFusionEngine.FusionExclusionReason.STALE_OR_FUTURE_DATED,
+                result.exclusions().get(0).reason());
+    }
+
+    @Test
+    void invalidTrackLifecycleIsExplicitlyExcluded() {
+        FusionEvidence terminated = new FusionEvidence(
+                "camera-a",
+                trackWithState("track-a", 0, 0, 0, 0.9, 0, TrackLifecycleState.TERMINATED),
+                "local-world",
+                T0,
+                T0,
+                null);
+        FusionEvidence healthy = evidence("camera-b", "track-b", 1, 0, 0, 0.8, null, 0);
+
+        DeterministicFusionEngine.FusionResult result = engine.fuseDetailed(
+                List.of(terminated, healthy), T0.plusMillis(100));
+
+        assertEquals(List.of("camera-b"), result.estimate().orElseThrow().sourceIds());
+        assertEquals(1, result.exclusions().size());
+        assertEquals("camera-a:track-a", result.exclusions().get(0).evidenceId());
+        assertEquals(DeterministicFusionEngine.FusionExclusionReason.INVALID_SOURCE_STATE,
                 result.exclusions().get(0).reason());
     }
 
@@ -152,8 +174,13 @@ class DeterministicFusionEngineTest {
     }
 
     private static Track track(String id, double x, double y, double z, double confidence, long eventOffsetMs) {
+        return trackWithState(id, x, y, z, confidence, eventOffsetMs, TrackLifecycleState.CONFIRMED);
+    }
+
+    private static Track trackWithState(String id, double x, double y, double z, double confidence,
+                                        long eventOffsetMs, TrackLifecycleState lifecycleState) {
         return new Track(id, EntityType.VEHICLE, new LocalPosition(x, y, z),
                 new LocalPosition(1, 0, 0), new Confidence(confidence), T0.plusMillis(eventOffsetMs),
-                List.of(id + "-detection"), TrackLifecycleState.CONFIRMED);
+                List.of(id + "-detection"), lifecycleState);
     }
 }
