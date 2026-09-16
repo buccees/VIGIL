@@ -118,6 +118,32 @@ class DeterministicFusionEngineTest {
                 result.exclusions().get(0).reason());
     }
 
+    @Test
+    void staleEvidenceIsExplicitlyExcludedWithoutChangingFreshAnchorSelection() {
+        FusionEvidence stale = evidence("camera-a", "track-a", 100, 0, 0, 0.95, null, 0);
+        FusionEvidence fresh = evidence("camera-b", "track-b", 1, 0, 0, 0.8, null, 1000);
+
+        DeterministicFusionEngine.FusionResult result = engine.fuseDetailed(List.of(stale, fresh), T0.plusSeconds(3));
+
+        assertEquals(List.of("camera-b"), result.estimate().orElseThrow().sourceIds());
+        assertEquals(1, result.exclusions().size());
+        assertEquals("camera-a:track-a", result.exclusions().get(0).evidenceId());
+        assertEquals(DeterministicFusionEngine.FusionExclusionReason.STALE_OR_FUTURE_DATED,
+                result.exclusions().get(0).reason());
+    }
+
+    @Test
+    void futureDatedEvidenceIsExplicitlyExcluded() {
+        FusionEvidence future = evidence("camera-a", "track-a", 0, 0, 0, 0.8, null, 1000);
+
+        DeterministicFusionEngine.FusionResult result = engine.fuseDetailed(List.of(future), T0);
+
+        assertTrue(result.estimate().isEmpty());
+        assertEquals(1, result.exclusions().size());
+        assertEquals(DeterministicFusionEngine.FusionExclusionReason.STALE_OR_FUTURE_DATED,
+                result.exclusions().get(0).reason());
+    }
+
     private static FusionEvidence evidence(String source, String trackId, double x, double y, double z,
                                            double confidence, Double uncertainty, long eventOffsetMs) {
         return new FusionEvidence(source, track(trackId, x, y, z, confidence, eventOffsetMs),
