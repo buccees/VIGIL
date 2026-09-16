@@ -110,7 +110,8 @@ class DeterministicFusionEngineTest {
         FusionEvidence a = evidence("camera-a", "track-a", 0, 0, 0, 0.8, null, 0);
         FusionEvidence b = evidence("camera-b", "track-b", 1, 0, 0, 0.8, null, 1000);
 
-        DeterministicFusionEngine.FusionResult result = engine.fuseDetailed(List.of(a, b), T0.plusMillis(100));
+        DeterministicFusionEngine.FusionResult result = engine.fuseDetailed(List.of(a, b),
+                T0.plusSeconds(1).plusMillis(500));
 
         assertEquals(1, result.exclusions().size());
         assertEquals("camera-b:track-b", result.exclusions().get(0).evidenceId());
