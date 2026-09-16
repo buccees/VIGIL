@@ -2,6 +2,7 @@ package com.buccees.vigil.fusion;
 
 import com.buccees.vigil.spatial.LocalPosition;
 import com.buccees.vigil.world.Confidence;
+import com.buccees.vigil.world.TrackLifecycleState;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -45,6 +46,12 @@ public final class DeterministicFusionEngine {
         List<FusionExclusion> exclusions = new ArrayList<>();
         List<FusionEvidence> temporallyEligible = new ArrayList<>();
         for (FusionEvidence candidate : valid) {
+            if (candidate.track().lifecycleState() == TrackLifecycleState.STALE
+                    || candidate.track().lifecycleState() == TrackLifecycleState.TERMINATED) {
+                exclusions.add(new FusionExclusion(candidate.evidenceId(), FusionExclusionReason.INVALID_SOURCE_STATE));
+                continue;
+            }
+
             Duration age = candidate.ageAt(fusionTime);
             if (age.isNegative() || age.compareTo(policy.maxEvidenceAge()) > 0) {
                 exclusions.add(new FusionExclusion(candidate.evidenceId(), FusionExclusionReason.STALE_OR_FUTURE_DATED));
@@ -107,6 +114,7 @@ public final class DeterministicFusionEngine {
         double weightedConfidence = 0;
         double weightedUncertainty = 0;
         boolean allHaveUncertainty = true;
+        boolean includesDegradedEvidence = false;
         Set<String> sources = new LinkedHashSet<>();
         Set<String> tracks = new LinkedHashSet<>();
         Set<String> detections = new LinkedHashSet<>();
@@ -125,6 +133,9 @@ public final class DeterministicFusionEngine {
             sources.add(item.sourceId());
             tracks.add(item.track().id());
             detections.addAll(item.track().detectionIds());
+            if (item.track().lifecycleState() == TrackLifecycleState.DEGRADED) {
+                includesDegradedEvidence = true;
+            }
             if (item.positionUncertaintyMeters() == null) allHaveUncertainty = false;
             else weightedUncertainty += item.positionUncertaintyMeters() * fraction;
         }
@@ -132,16 +143,18 @@ public final class DeterministicFusionEngine {
         String associationId = tracks.stream().sorted().findFirst().orElseThrow();
         String qualityNote = conflict
                 ? "Material disagreement detected; estimate uses the strongest deterministic evidence and is not cross-source qualified."
-                : compatible.size() == 1
-                    ? "Single compatible evidence item; no cross-source fusion performed."
-                    : "Compatible evidence fused using confidence-weighted deterministic averaging.";
+                : includesDegradedEvidence
+                    ? "Degraded evidence contributed under the configured deterministic fusion policy; result is not qualified as fully healthy evidence."
+                    : compatible.size() == 1
+                        ? "Single compatible evidence item; no cross-source fusion performed."
+                        : "Compatible evidence fused using confidence-weighted deterministic averaging.";
 
         FusedEstimate estimate = new FusedEstimate(
                 associationId, first.type(), new LocalPosition(x, y, z), new LocalPosition(vx, vy, vz),
                 new Confidence(weightedConfidence),
                 allHaveUncertainty ? OptionalDouble.of(weightedUncertainty) : OptionalDouble.empty(),
                 fusionTime, latestEvent, List.copyOf(sources), List.copyOf(tracks), List.copyOf(detections),
-                !conflict, qualityNote);
+                !conflict && !includesDegradedEvidence, qualityNote);
         return new FusionResult(Optional.of(estimate), List.copyOf(exclusions));
     }
 
@@ -166,6 +179,7 @@ public final class DeterministicFusionEngine {
         INCOMPATIBLE_TYPE,
         TEMPORAL_SKEW,
         STALE_OR_FUTURE_DATED,
+        INVALID_SOURCE_STATE,
         OUTSIDE_CONFLICT_DISTANCE,
         MATERIAL_DISAGREEMENT
     }
