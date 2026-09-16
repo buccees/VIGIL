@@ -42,10 +42,21 @@ public final class DeterministicFusionEngine {
                 .toList();
         if (valid.isEmpty()) return new FusionResult(Optional.empty(), List.of());
 
-        FusionEvidence first = valid.get(0);
         List<FusionExclusion> exclusions = new ArrayList<>();
-        List<FusionEvidence> compatible = new ArrayList<>();
+        List<FusionEvidence> temporallyEligible = new ArrayList<>();
         for (FusionEvidence candidate : valid) {
+            Duration age = candidate.ageAt(fusionTime);
+            if (age.isNegative() || age.compareTo(policy.maxEvidenceAge()) > 0) {
+                exclusions.add(new FusionExclusion(candidate.evidenceId(), FusionExclusionReason.STALE_OR_FUTURE_DATED));
+                continue;
+            }
+            temporallyEligible.add(candidate);
+        }
+        if (temporallyEligible.isEmpty()) return new FusionResult(Optional.empty(), List.copyOf(exclusions));
+
+        FusionEvidence first = temporallyEligible.get(0);
+        List<FusionEvidence> compatible = new ArrayList<>();
+        for (FusionEvidence candidate : temporallyEligible) {
             if (!candidate.frameId().equals(first.frameId())) {
                 exclusions.add(new FusionExclusion(candidate.evidenceId(), FusionExclusionReason.INCOMPATIBLE_FRAME));
                 continue;
@@ -154,6 +165,7 @@ public final class DeterministicFusionEngine {
         INCOMPATIBLE_FRAME,
         INCOMPATIBLE_TYPE,
         TEMPORAL_SKEW,
+        STALE_OR_FUTURE_DATED,
         OUTSIDE_CONFLICT_DISTANCE,
         MATERIAL_DISAGREEMENT
     }
