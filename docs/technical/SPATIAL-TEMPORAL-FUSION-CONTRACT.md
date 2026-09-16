@@ -1,7 +1,7 @@
 # Spatial / Temporal Fusion Contract
 
 **Version:** 0.2  
-**Status:** Proposed for implementation
+**Status:** Active implementation / verification
 
 ## Purpose
 
@@ -111,6 +111,8 @@ For the initial deterministic implementation, the supported transform is a trans
 Evidence with an unknown, missing, invalid, or incompatible transform must not be silently fused. Missing frame relationships are excluded as `INCOMPATIBLE_FRAME`; a known but invalid transform is excluded as `INVALID_TRANSFORM`. Both are observable through structured fusion diagnostics.
 
 Transformed evidence must be compared in the selected fusion frame. The fused estimate must preserve transform provenance for every applied transform.
+
+The current translation-only transform abstraction is applied consistently to frame-dependent spatial state. Position is translated directly; velocity passes through the same explicit transform boundary and remains unchanged by a pure translation.
 
 ## Calibration and Sensor Validity
 
@@ -335,7 +337,8 @@ The initial implementation must include tests for at least:
 18. valid fused estimates enter the World Model only through the updater boundary;
 19. unresolved evidence does not force unsupported identity or precision;
 20. valid spatial transforms are applied deterministically and their provenance is preserved;
-21. invalid spatial transforms are excluded explicitly rather than silently ignored.
+21. invalid spatial transforms are excluded explicitly rather than silently ignored;
+22. translation-only spatial transforms preserve velocity while applying the explicit velocity transform boundary.
 
 ## Deferred Capabilities
 
