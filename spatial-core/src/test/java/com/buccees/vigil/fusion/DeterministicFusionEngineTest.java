@@ -33,7 +33,42 @@ class DeterministicFusionEngineTest {
         assertEquals(2.8571428571, result.positionUncertaintyMeters().orElseThrow(), 1.0e-9);
         assertEquals(List.of("camera-a", "camera-b"), result.sourceIds());
         assertEquals(List.of("track-a", "track-b"), result.trackIds());
+        assertTrue(result.transformProvenance().isEmpty());
         assertTrue(result.qualified());
+    }
+
+    @Test
+    void validSpatialTransformAlignsEvidenceIntoFusionFrame() {
+        FusionEvidence a = evidence("camera-a", "track-a", 0, 0, 0, 0.8, null, 0);
+        FusionEvidence b = new FusionEvidence("camera-b", track("track-b", -1, 0, 0, 0.8, 50),
+                "sensor-b", T0.plusMillis(50), T0.plusMillis(60), null);
+        SpatialTransform transform = new SpatialTransform("sensor-b", "local-world",
+                new LocalPosition(1, 0, 0), true, "calibration:sensor-b-to-local-world:v1");
+
+        DeterministicFusionEngine transformedEngine = new DeterministicFusionEngine(policy, List.of(transform));
+        FusedEstimate result = transformedEngine.fuse(List.of(a, b), T0.plusMillis(100)).orElseThrow();
+
+        assertEquals(0.0, result.position().xM(), 1.0e-9);
+        assertEquals(List.of("calibration:sensor-b-to-local-world:v1"), result.transformProvenance());
+        assertEquals(List.of("camera-a", "camera-b"), result.sourceIds());
+    }
+
+    @Test
+    void invalidSpatialTransformIsExplicitlyExcluded() {
+        FusionEvidence a = evidence("camera-a", "track-a", 0, 0, 0, 0.8, null, 0);
+        FusionEvidence b = new FusionEvidence("camera-b", track("track-b", -1, 0, 0, 0.8, 50),
+                "sensor-b", T0.plusMillis(50), T0.plusMillis(60), null);
+        SpatialTransform invalid = new SpatialTransform("sensor-b", "local-world",
+                new LocalPosition(1, 0, 0), false, "calibration:sensor-b-to-local-world:invalid");
+
+        DeterministicFusionEngine transformedEngine = new DeterministicFusionEngine(policy, List.of(invalid));
+        DeterministicFusionEngine.FusionResult result = transformedEngine.fuseDetailed(List.of(a, b), T0.plusMillis(100));
+
+        assertEquals(List.of("camera-a"), result.estimate().orElseThrow().sourceIds());
+        assertEquals(1, result.exclusions().size());
+        assertEquals("camera-b:track-b", result.exclusions().get(0).evidenceId());
+        assertEquals(DeterministicFusionEngine.FusionExclusionReason.INVALID_TRANSFORM,
+                result.exclusions().get(0).reason());
     }
 
     @Test

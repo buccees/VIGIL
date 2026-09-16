@@ -1,481 +1,376 @@
-# VIGIL Spatial / Temporal Fusion Technical Contract
+# Spatial / Temporal Fusion Contract
 
-**Document:** Spatial / Temporal Fusion Technical Contract  
 **Version:** 0.2  
-**Status:** Proposed for implementation  
-**Parent:** Spatial World Model Technical Design
+**Status:** Proposed for implementation
 
-## 1. Purpose
+## Purpose
 
-This contract defines the boundary between perception state from one or more sources and a fused spatial/temporal estimate suitable for the authoritative World Model.
+Spatial / Temporal Fusion combines compatible evidence into a better-supported estimate while preserving uncertainty, provenance, disagreement, freshness, and data-quality information.
 
-Fusion combines compatible evidence into a better-supported estimate while preserving uncertainty, provenance, disagreement, freshness, and data-quality information. Fusion does not create physical truth and must not silently turn incomplete evidence into certainty.
+Fusion does **not** create physical truth. It must not silently turn incomplete, stale, invalid, or materially conflicting evidence into certainty.
 
-The contract defines semantics first. Algorithms, filters, storage, frameworks, and hardware-specific implementations are implementation details unless explicitly required here.
+## Scope
 
-## 2. Scope
+```text
+Tracks / Compatible Evidence
+        |
+        v
+Spatial / Temporal Fusion
+        |
+        v
+Fused Estimate
+        |
+        v
+WorldModelUpdater
+        |
+        v
+World Model
+```
 
-This milestone covers the conceptual and technical boundary:
+Fusion is an estimation boundary. It must not directly mutate authoritative World Model state.
 
-`Tracks / Compatible Evidence → Spatial / Temporal Fusion → Fused Estimate → WorldModelUpdater → World Model`
+## Responsibilities
 
-It extends the existing lifecycle:
-
-`Observation → Detection → Track → Spatial / Temporal Fusion → Spatial World Model → Spatial / Environmental Services → Relevance & Priority → Presentation / Attention`
-
-The first implementation may begin with Tracks as its primary inputs. Future implementations may accept other explicitly compatible evidence without changing the World Model boundary.
-
-## 3. Responsibilities
-
-### 3.1 Fusion Layer
-
-The fusion layer is responsible for:
+Fusion is responsible for:
 
 - accepting structured perception evidence;
-- validating temporal and spatial compatibility;
-- aligning evidence to a common temporal and spatial interpretation;
-- evaluating whether evidence may refer to the same modeled entity or state;
-- combining compatible evidence into an estimate;
+- evaluating temporal and spatial compatibility;
+- establishing a common temporal and spatial interpretation before combining evidence;
+- determining whether evidence can reasonably refer to the same modeled entity/state;
+- combining compatible evidence under deterministic policy;
 - preserving confidence, uncertainty, freshness, validity, and provenance;
-- representing or exposing meaningful disagreement between sources;
-- applying configured source/data-quality policy; and
-- producing deterministic fusion results for identical valid inputs and configuration.
+- representing meaningful disagreement rather than hiding it through averaging;
+- applying source/data-quality policy;
+- producing deterministic results for identical valid inputs and configuration.
 
-Fusion must not directly mutate the authoritative World Model.
+Fusion is not responsible for:
 
-Evidence that is excluded from a fusion result must remain observable through structured diagnostic information. Exclusion must not become silent data loss.
+- directly mutating the authoritative World Model;
+- deciding user-facing attention or presentation priority;
+- performing advanced probabilistic multi-hypothesis tracking in the initial implementation;
+- inventing missing measurements or unsupported certainty.
 
-### 3.2 WorldModelUpdater
+## Input Contract
 
-`WorldModelUpdater` remains the controlled boundary into authoritative world state.
+Each evidence item should provide, where available:
 
-The fused estimate enters the World Model through the same controlled update path used by track-derived state. Fusion must not bypass validation, temporal ordering, provenance, or event semantics defined by the Track → World Model contract.
-
-### 3.3 World Model
-
-The World Model remains responsible for authoritative current spatial state. It does not become a fusion engine and does not need to know which estimation algorithm produced a valid fused state.
-
-## 4. Terminology
-
-To avoid ambiguity, VIGIL uses the following meanings:
-
-- **Evidence:** structured information supplied to fusion from an authorized source or upstream perception component.
-- **Alignment:** placing evidence into a compatible temporal and spatial interpretation before comparison or combination.
-- **Association:** an explicit claim that two or more evidence items may describe the same modeled entity or state.
-- **Fusion:** combining compatible evidence into a joint estimate.
-- **Estimate:** a derived representation of spatial or temporal state that includes its supporting uncertainty and provenance.
-- **Confidence:** strength of support for a classification, association, or conclusion.
-- **Uncertainty:** expected error or imprecision in an estimated quantity.
-- **Freshness:** how current an estimate is relative to its relevant observation/update time and configured policy.
-- **Disagreement:** materially inconsistent evidence that cannot be treated as mutually equivalent without further policy or information.
-- **Qualified:** an estimate that is suitable as a qualified fusion result under the configured policy. Qualification does not mean that all evidence agreed, nor does it mean that a conflict occurred.
-- **Exclusion:** a structured record that identifies evidence not included in the resulting fusion and the policy-defined reason for its exclusion.
-
-Fusion must not use these terms interchangeably.
-
-## 5. Input Contract
-
-Each fusion input must provide, directly or through resolvable upstream references, as much of the following as its source supports:
-
-- stable source identity;
-- stable detection/track/evidence identity;
+- stable source/evidence identity;
 - event/observation time;
-- ingestion/processing time when available;
+- ingestion/processing time;
 - coordinate-frame identity;
-- spatial state, when available;
-- kinematic state such as velocity or heading, when available;
-- entity/type classification, when available;
+- spatial state;
+- kinematics;
+- classification/type;
 - confidence;
-- uncertainty, when available;
+- uncertainty;
 - validity/quality state;
-- freshness information; and
-- provenance references.
+- freshness;
+- provenance.
 
-Missing values must remain explicitly unavailable. Fusion must never interpret missing position, velocity, uncertainty, timestamp, or calibration information as zero, perfect certainty, or a default guess.
+Missing values remain explicitly unavailable. Fusion must not interpret missing position, velocity, uncertainty, timestamp, or calibration information as zero, perfect certainty, or a default guess.
 
-## 6. Temporal Alignment
+## Temporal Alignment
 
-Fusion must distinguish when evidence applies to the environment from when VIGIL received or processed it.
+Fusion must distinguish environment event time from receipt/processing time. Temporal alignment must use a common time interpretation and a configured temporal policy.
 
-The fusion layer shall use an explicit common time interpretation and configured temporal policy.
-
-The policy must define behavior for:
+The implementation must define behavior for:
 
 - normal timestamp differences;
-- allowable temporal skew;
+- allowable event-time skew;
 - out-of-order evidence;
 - stale evidence;
 - future-dated evidence;
 - missing or uncertain timestamps;
-- interpolation, when supported;
-- extrapolation, when supported; and
-- evidence that cannot be temporally aligned with sufficient validity.
+- interpolation/extrapolation, if supported;
+- evidence that cannot be temporally aligned.
 
-The initial implementation must not hard-code a universal timing threshold into the architecture contract. Runtime configuration may define thresholds appropriate to the participating sensors and workload.
+The initial implementation must not hard-code a universal timing threshold into the architecture contract. Timing thresholds belong to configuration/policy.
 
-An input whose temporal validity cannot be established must not silently contribute as though it were current.
+Temporally invalid evidence must not silently contribute as current evidence. If excluded for temporal incompatibility, the exclusion should have a structured diagnostic reason.
 
-When evidence is excluded for temporal incompatibility, the fusion result should expose a structured exclusion reason when supported by the implementation.
-
-## 7. Spatial Frame Alignment
+## Spatial Frame Alignment
 
 Fusion inputs must have an explicit coordinate-frame interpretation.
 
-Supported frame relationships may include:
+The implementation may support frame relationships such as:
 
 ```text
-Sensor Frame
-     ↓
-Device / Body Frame
-     ↓
-Local / World Frame
-     ↓
-Geographic Frame, when applicable
+Sensor Frame -> Device/Body Frame -> Local/World Frame -> Geographic Frame
 ```
 
-A transform used for fusion must have:
+A transform used for fusion must identify:
 
 - source frame;
 - destination frame;
 - validity state;
-- calibration/provenance information where applicable; and
-- an interpretation consistent with the relevant timestamp.
+- calibration/provenance where applicable;
+- timestamp-consistent interpretation.
 
-Evidence with an unknown, invalid, or incompatible spatial transform must not be silently fused.
+For the initial deterministic implementation, the supported transform is a translation between local Cartesian frames. Rotation, scale, and arbitrary nonlinear/geographic transforms remain outside this first-pass abstraction until the spatial primitives and calibration contracts require them.
 
-VIGIL's existing spatial primitives and documented units remain authoritative. Fusion must not introduce competing coordinate or unit conventions.
+Evidence with an unknown, missing, invalid, or incompatible transform must not be silently fused. Missing frame relationships are excluded as `INCOMPATIBLE_FRAME`; a known but invalid transform is excluded as `INVALID_TRANSFORM`. Both are observable through structured fusion diagnostics.
 
-When evidence is excluded for frame incompatibility, the fusion result should expose a structured exclusion reason when supported by the implementation.
+Transformed evidence must be compared in the selected fusion frame. The fused estimate must preserve transform provenance for every applied transform.
 
-## 8. Calibration and Sensor Validity
+## Calibration and Sensor Validity
 
-Fusion must treat calibration and sensor/data health as inputs to fusion quality.
-
-Relevant states may include:
+Fusion should distinguish at least:
 
 - healthy;
 - degraded;
 - stale;
 - unavailable;
 - invalid;
-- calibration uncertain; and
+- calibration uncertain;
 - timestamp uncertain.
 
-The fusion policy may reduce, reject, or defer contributions from degraded evidence according to explicit rules.
+A degraded source must not automatically invalidate all other compatible evidence. Degraded evidence may be reduced, rejected, or deferred according to explicit policy.
 
-A degraded source must not automatically invalidate all other compatible evidence.
+Calibration uncertainty should be distinguishable from measurement uncertainty when the data model supports that distinction.
 
-Calibration uncertainty must remain distinguishable from measurement uncertainty when the implementation supports that distinction.
+## Association
 
-## 9. Evidence Association
+Fusion must make association an explicit claim rather than an implicit assumption.
 
-Fusion must explicitly evaluate whether evidence may refer to the same entity or state.
-
-For example:
-
-```text
-Camera → Track A
-Depth  → Track B
-IMU    → Motion Evidence C
-             ↓
-       Association Analysis
-             ↓
-       Same-state evidence?
-             ↓
-        Fused Estimate
-```
-
-Association is an evidence-based claim, not proof of physical identity.
-
-An association policy must be capable of considering compatible factors such as:
+Association factors may include:
 
 - spatial consistency;
 - temporal consistency;
 - motion consistency;
 - type compatibility;
 - source validity;
-- expected measurement error; and
+- expected measurement error;
 - existing association state.
 
-The policy must not silently force incompatible evidence into one entity merely because it is nearby.
+Fusion must not force incompatible evidence into the same entity merely because the observations are nearby.
 
-Sophisticated probabilistic or multi-hypothesis identity resolution is deferred, but the contract must preserve a place for competing or uncertain associations.
+Advanced probabilistic association and multi-hypothesis tracking are deferred capabilities.
 
-## 10. Fused State Contract
+## Fused State
 
-A fused estimate should represent the best supported state available under the configured policy, while retaining how that state was obtained.
+A fused state should preserve, where supported:
 
-Where supported, the fused state may contain:
-
-- entity/association reference;
+- deterministic association reference;
 - position;
 - velocity;
-- heading/orientation;
+- heading, if available;
 - confidence;
 - uncertainty;
-- validity;
 - freshness/observation age;
 - fusion timestamp;
-- contributing sources;
-- contributing tracks;
-- contributing detections/evidence; and
-- consistency or quality metadata.
+- contributing sources/tracks/detections;
+- consistency/quality metadata;
+- transform provenance for any evidence converted into the fusion frame.
 
-The fusion layer must not fabricate unsupported precision.
+Fusion must not emit unsupported precision. If uncertainty is unavailable, it remains unavailable rather than becoming zero.
 
-A fused position without a supported uncertainty estimate must expose uncertainty as unavailable rather than zero.
+## Confidence and Uncertainty
 
-A fusion operation may also produce structured exclusion diagnostics alongside the estimate. These diagnostics identify evidence that was not included and the policy-defined reason for exclusion.
+Confidence and uncertainty are independent concepts.
 
-## 11. Confidence and Uncertainty
+- Confidence expresses trust in the evidence/result.
+- Uncertainty expresses how precisely the physical state is known.
 
-Confidence and uncertainty are independent.
+Fusion must not substitute one for the other.
 
-- Confidence describes how strongly the system supports a classification, association, or conclusion.
-- Uncertainty describes the expected error or imprecision in an estimated quantity.
+Priority is outside this contract and belongs to a later relevance/priority layer.
 
-Combining multiple sources does not automatically mean confidence becomes higher or uncertainty becomes lower. Those changes must follow the selected fusion method and evidence quality.
+## Conflicting Evidence
 
-Fusion must preserve source uncertainty where supported and must not claim precision unsupported by the inputs or estimator.
+When compatible evidence materially conflicts, Fusion must use a deterministic, policy-driven response.
 
-Priority is outside this contract. Fusion must not determine whether an entity deserves user attention.
-
-## 12. Conflicting Evidence
-
-Fusion must explicitly account for material disagreement.
-
-For example:
-
-```text
-Source A → position estimate A
-Source B → position estimate B
-             ↓
-       Consistency Check
-          ↙        ↘
-     Compatible    Conflict
-         ↓            ↓
-      Combine    Down-weight / defer / reject
-```
-
-The selected behavior must be deterministic and policy-driven.
-
-Fusion must not simply average materially inconsistent measurements without first applying the configured consistency policy.
-
-When evidence remains unresolved, the result may be:
+Acceptable outcomes include:
 
 - a fused estimate with elevated uncertainty;
-- a qualified estimate using a subset of evidence;
-- an explicitly unqualified estimate using a deterministic subset of evidence;
-- an unresolved association; or
+- a qualified subset;
+- an explicitly unqualified deterministic subset;
+- an unresolved association;
 - no fused estimate.
 
-The choice must remain explainable through provenance, qualification state, and quality metadata.
+Fusion must not blindly average materially inconsistent evidence. Provenance and quality metadata must explain the selected outcome.
 
-When material disagreement causes evidence to be excluded, the exclusion must be observable through structured diagnostic information. `MATERIAL_DISAGREEMENT` identifies this condition; it does not by itself mean that the entire fusion operation failed.
+`MATERIAL_DISAGREEMENT` is observable and does not mean that the entire fusion operation failed. The `qualified` field means that the result is suitable as a qualified result under policy; it does not mean that the result is conflict-free.
 
-`qualified` means that the resulting estimate is suitable as a qualified result under policy. Compatible or single-source evidence may therefore be qualified. Material disagreement may produce an unqualified estimate when policy permits a deterministic subset to remain usable. Qualification is not a synonym for conflict-free evidence.
+## Freshness
 
-## 13. Freshness and Observation Age
-
-Freshness is a first-class property of fused state.
-
-The fusion layer must preserve the relationship between:
+Fusion must preserve:
 
 - source observation time;
 - latest contributing evidence time;
-- fusion processing time; and
-- current age of the resulting estimate.
+- fusion processing time;
+- current observation age.
 
-An old but valid estimate may remain useful historical or contextual information, but it must not be represented as newly observed merely because fusion processing occurred recently.
+An old but valid estimate may remain useful as historical/contextual state, but it must not appear to have been newly observed.
 
-A loss of new evidence must not silently erase historical identity from the World Model.
+Loss of new evidence must not silently erase established identity.
 
-## 14. Provenance
+## Provenance
 
-Every fused estimate must preserve a traceable evidence path.
+Fusion results must retain a traceable path back to contributing evidence.
 
-At minimum, provenance should support:
+Where transforms are applied, transform provenance must identify the frame conversion used to place evidence into the fusion frame.
 
-```text
-Fused Estimate
-    ↓
-Contributing Tracks / Evidence
-    ↓
-Detections
-    ↓
-Observations / Authorized Sources
-```
+Rejected, excluded, or downweighted evidence should have a structured reason available to diagnostics.
 
-Fusion must not collapse provenance into only the final numerical estimate.
-
-Where evidence is rejected, excluded, or down-weighted because of quality or inconsistency, the reason should be available to diagnostics and future presentation/explainability layers when supported.
-
-Exclusion diagnostics must identify the affected evidence and a stable reason category. The initial implementation defines the following categories:
+Stable initial exclusion categories include:
 
 - `INCOMPATIBLE_FRAME`;
+- `INVALID_TRANSFORM`;
 - `INCOMPATIBLE_TYPE`;
 - `TEMPORAL_SKEW`;
-- `OUTSIDE_CONFLICT_DISTANCE`; and
+- `STALE_OR_FUTURE_DATED`;
+- `INVALID_SOURCE_STATE`;
+- `OUTSIDE_CONFLICT_DISTANCE`;
 - `MATERIAL_DISAGREEMENT`.
 
-The diagnostic record does not itself establish physical identity or authority. It explains the fusion decision for the affected evidence.
+## Output Contract
 
-## 15. Output Contract
+Fusion may produce:
 
-A fusion operation produces a structured result containing:
+1. a fused estimate; and
+2. zero or more structured exclusion diagnostics.
 
-- an optional fused estimate; and
-- zero or more structured exclusion diagnostics.
+A valid fused estimate is suitable for the WorldModelUpdater boundary. Fusion itself must not mutate the authoritative World Model.
 
-A successful fusion operation produces one of:
-
-1. a valid fused estimate, with any applicable exclusions exposed;
-2. an explicitly unresolved or unqualified result, with applicable diagnostics exposed; or
-3. no fused estimate because the evidence is insufficient or invalid, with applicable diagnostics exposed.
-
-A valid fused estimate must be suitable for submission to `WorldModelUpdater`.
-
-Fusion must not directly emit a World Model state mutation.
-
-The logical flow is:
+## Deterministic Processing Flow
 
 ```text
 Evidence
-   ↓
+   |
+   v
 Validate
-   ↓
+   |
+   v
 Temporal Alignment
-   ↓
+   |
+   v
 Spatial Alignment
-   ↓
-Quality / Calibration Evaluation
-   ↓
-Association Evaluation
-   ↓
-Consistency Evaluation
-   ↓
+   |
+   v
+Quality / Calibration
+   |
+   v
+Association
+   |
+   v
+Consistency
+   |
+   v
 Fusion / Estimation
-   ↓
+   |
+   v
 Attach Confidence / Uncertainty / Freshness / Provenance
-   ↓
+   |
+   v
 Fused Estimate + Exclusion Diagnostics
-   ↓
+   |
+   v
 WorldModelUpdater
-   ↓
+   |
+   v
 World Model
 ```
 
-Exclusion diagnostics are explanatory fusion output, not authoritative World Model state.
+## Invalid Input Rules
 
-## 16. Invalid Input Rules
+Evidence must be rejected, quarantined, or excluded when required inputs are missing or invalid, including:
 
-Fusion must reject, quarantine, or exclude evidence that violates required semantics, including:
-
-- missing stable source/evidence identity where required;
+- missing required identity;
 - invalid timestamps;
-- non-finite spatial or kinematic values;
+- non-finite spatial/kinematic values;
 - unknown or incompatible coordinate frames;
 - invalid transforms;
-- invalid confidence values;
-- unsupported or invalid entity types where required;
-- unusable calibration state; and
-- evidence explicitly marked invalid by its source or upstream processing.
+- invalid confidence;
+- unsupported/invalid types;
+- unusable calibration;
+- explicit invalid source state.
 
-Invalid evidence must not silently mutate authoritative world state.
+Invalid evidence must not silently mutate authoritative world state. Where practical, the reason should be observable through structured diagnostics.
 
-Where an invalid or incompatible input is excluded as part of a fusion operation, the implementation should expose an appropriate structured diagnostic rather than silently dropping the evidence.
+## Determinism Requirements
 
-## 17. Determinism
+Given identical:
 
-Given the same:
-
-- valid input evidence;
+- valid evidence;
 - timestamps;
-- coordinate transforms;
+- transforms;
 - calibration state;
-- source-quality state;
-- existing association state; and
-- configuration;
+- source quality state;
+- association state;
+- fusion configuration;
 
-VIGIL shall produce the same fused result and equivalent provenance, qualification, and exclusion metadata.
+Fusion must produce the same result and equivalent provenance/qualification/exclusion metadata.
 
-The initial implementation does not require AI, stochastic identity decisions, or nondeterministic estimation.
+Input ordering must not change the logical result.
 
-## 18. Concurrency and Ordering
+## Concurrency and Ordering
 
-Fusion may process multiple inputs concurrently in future implementations, but logical fusion results must have a defined temporal and spatial ordering.
+Concurrent evidence processing may be supported if logical fusion results remain deterministic and well-defined.
 
-A fused estimate must identify the evidence and state version from which it was derived where the runtime supports versioning.
+Mutation of authoritative World Model state remains serialized through the WorldModelUpdater boundary.
 
-World Model mutation remains serialized through the controlled `WorldModelUpdater` boundary according to that component's temporal contract.
+Performance optimization must not weaken correctness, provenance, determinism, or exclusion diagnostics.
 
-Performance optimization must not weaken temporal correctness, provenance, determinism, or diagnostic observability.
+## Required Tests
 
-## 19. Required Tests
+The initial implementation must include tests for at least:
 
-The implementation is not complete until tests demonstrate at least:
-
-1. compatible evidence can produce one fused estimate;
-2. incompatible coordinate frames are rejected or explicitly unresolved;
+1. compatible evidence produces one fused estimate;
+2. incompatible coordinate frames are rejected or unresolved;
 3. valid transforms allow compatible evidence to be compared in a common frame;
-4. event time is distinguished from ingestion/processing time;
-5. out-of-order evidence follows the configured temporal policy;
-6. stale evidence cannot silently masquerade as current evidence;
-7. missing uncertainty remains unknown rather than becoming zero;
+4. event time and ingestion/processing time are distinguished;
+5. out-of-order evidence follows configured policy;
+6. stale evidence cannot masquerade as current evidence;
+7. missing uncertainty remains unknown rather than zero;
 8. confidence and uncertainty remain separate;
 9. degraded/invalid source state affects contribution according to policy;
 10. incompatible evidence is not blindly averaged;
-11. association decisions remain explicit and traceable;
-12. fused provenance preserves contributing source/track/detection references;
-13. excluded evidence produces observable structured diagnostics with a stable reason;
-14. material disagreement is observable and does not silently become an averaged estimate;
+11. association is explicit and traceable;
+12. provenance preserves contributing source/track/detection identity;
+13. excluded evidence produces a structured stable diagnostic;
+14. material disagreement is observable rather than silently averaged;
 15. invalid evidence cannot corrupt authoritative World Model state;
 16. identical valid inputs and configuration produce deterministic results;
-17. fusion does not directly mutate World Model state;
-18. a valid fused estimate enters the World Model only through `WorldModelUpdater`; and
-19. unresolved evidence does not force an unsupported identity or precision claim.
+17. Fusion does not directly mutate authoritative World Model state;
+18. valid fused estimates enter the World Model only through the updater boundary;
+19. unresolved evidence does not force unsupported identity or precision;
+20. valid spatial transforms are applied deterministically and their provenance is preserved;
+21. invalid spatial transforms are excluded explicitly rather than silently ignored.
 
-## 20. Deferred Capabilities
+## Deferred Capabilities
 
-The following are intentionally deferred rather than left ambiguous:
+The following remain intentionally deferred until later architectural layers or contracts require them:
 
-- advanced probabilistic data association;
-- multi-hypothesis tracking/association;
-- full covariance and state-estimation mathematics where not yet supported by current primitives;
-- automatic sensor calibration;
-- distributed fusion across devices;
-- persistent fusion databases;
-- machine-learning-based fusion decisions;
+- advanced probabilistic association;
+- multi-hypothesis tracking;
+- full covariance/state estimation where unsupported by current primitives;
+- automatic calibration;
+- distributed fusion;
+- persistent fusion database;
+- ML-based fusion decisions;
 - AI-based identity resolution;
-- advanced uncertainty propagation across arbitrary transforms; and
+- advanced uncertainty propagation across arbitrary transforms;
 - presentation/attention prioritization.
 
-These capabilities must integrate through this contract rather than bypassing the World Model boundary.
+## Implementation Boundary
 
-## 21. Initial Implementation Strategy
+The initial implementation should remain:
 
-The first implementation should favor a small, deterministic, inspectable fusion mechanism that demonstrates the contract without prematurely selecting a heavyweight estimation framework.
+- small;
+- deterministic;
+- inspectable;
+- based on existing spatial primitives, units, identity, timestamps, and Track -> World Model boundary;
+- replaceable at the algorithm level without changing the architectural contract.
 
-The implementation should preserve the repository's existing spatial primitives, units, identity separation, timestamp semantics, and Track → World Model boundary.
+Spatial transform support should remain similarly replaceable. The initial translation-only abstraction establishes the boundary without prematurely creating a general geometry or calibration framework.
 
-Algorithm selection should remain replaceable behind the fusion contract.
+## Mandatory Invariants
 
-Technology versions and libraries remain implementation choices. The repository's supported toolchain should be used rather than inheriting dependency versions from unrelated external applications.
-
-## 22. Architectural Invariants
-
-The following invariants are mandatory:
-
-> **Fusion combines compatible evidence; it does not create authoritative world state.**
-
-> **Association is a claim supported by evidence, not automatic proof of physical identity.**
-
-> **Confidence, uncertainty, freshness, and provenance remain distinct properties.**
-
-> **Material disagreement must be represented or resolved by explicit policy; it must not be hidden by unsupported averaging.**
-
-> **Fusion exclusions are observable diagnostics, not silent data loss.**
-
-> **Qualification describes whether an estimate is suitable as a qualified result under policy; it is not a synonym for conflict-free evidence.**
-
-> **The World Model is authoritative current spatial state, and fused estimates enter it only through the controlled WorldModelUpdater boundary.**
+- Fusion combines compatible evidence but does not create authoritative world state.
+- Association is a supported claim, not proof of physical identity.
+- Confidence, uncertainty, freshness, and provenance remain distinct concepts.
+- Material disagreement is represented explicitly.
+- Evidence exclusions remain observable.
+- Qualification semantics remain explicit.
+- Authoritative World Model state changes only through the designated updater boundary.
+- Spatial frame conversion is explicit, deterministic, and provenance-bearing.

@@ -22,6 +22,7 @@ public record FusedEstimate(
         List<String> sourceIds,
         List<String> trackIds,
         List<String> detectionIds,
+        List<String> transformProvenance,
         boolean qualified,
         String qualityNote
 ) {
@@ -37,6 +38,7 @@ public record FusedEstimate(
         sourceIds = List.copyOf(Objects.requireNonNull(sourceIds, "sourceIds"));
         trackIds = List.copyOf(Objects.requireNonNull(trackIds, "trackIds"));
         detectionIds = List.copyOf(Objects.requireNonNull(detectionIds, "detectionIds"));
+        transformProvenance = List.copyOf(Objects.requireNonNull(transformProvenance, "transformProvenance"));
         if (trackIds.isEmpty()) throw new IllegalArgumentException("trackIds must not be empty");
         Objects.requireNonNull(qualityNote, "qualityNote");
         if (positionUncertaintyMeters.isPresent()) {
