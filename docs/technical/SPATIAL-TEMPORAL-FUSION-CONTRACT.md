@@ -1,6 +1,6 @@
 # Spatial / Temporal Fusion Contract
 
-**Version:** 0.2  
+**Version:** 0.3  
 **Status:** Active implementation / verification
 
 ## Purpose
@@ -48,7 +48,57 @@ Fusion is not responsible for:
 - directly mutating the authoritative World Model;
 - deciding user-facing attention or presentation priority;
 - performing advanced probabilistic multi-hypothesis tracking in the initial implementation;
-- inventing missing measurements or unsupported certainty.
+- inventing missing measurements or unsupported certainty;
+- assigning authoritative World Entity identity.
+
+## Identity and Association Boundaries
+
+VIGIL maintains distinct identity domains. Their values may be represented by strings, but equal string values do not make the identities semantically interchangeable.
+
+```text
+Track ID
+    = identity of one perception track
+
+FusedEstimate.trackIds
+    = identities of all Tracks contributing evidence to a fused estimate
+
+Fusion association ID
+    = deterministic reference to the fusion association represented by an estimate
+
+World Entity ID
+    = authoritative identity assigned within the World Model
+```
+
+The following invariant is mandatory:
+
+> **Track ID != Fusion association ID != World Entity ID.**
+
+A Fusion association ID must never be interpreted as a Track ID or World Entity ID merely because it has a similar representation or happens to contain a Track ID value.
+
+`FusedEstimate.associationId` is an association reference within the Fusion domain. It is not authoritative physical identity and must not be used as a substitute for a contributing Track ID when a Track ID is required.
+
+A World Entity must not derive its authoritative identity from `FusedEstimate.associationId`. World Entity identity is resolved by the WorldModelUpdater using the actual contributing Track IDs and the Track -> World Entity association state.
+
+`WorldEntity.sourceTrackId`, when present, must contain an actual Track ID. A Fusion association ID must never be stored in that field.
+
+For a multi-track fused estimate, contributing Track provenance is represented by the contributing Track IDs. The implementation must not manufacture or imply a single source Track merely because the fused estimate has one association ID.
+
+Example:
+
+```text
+associationId = "fusion-track-a-track-b"
+trackIds      = ["track-a", "track-b"]
+```
+
+The association ID above remains a Fusion association reference. It must not become:
+
+```text
+WorldEntity.sourceTrackId = "fusion-track-a-track-b"
+```
+
+If `sourceTrackId` is retained for a fused entity, its value must be an actual contributing Track ID and its semantics must remain explicitly documented. Otherwise it must be absent/null and the contributing Track IDs must be obtained from provenance.
+
+The value `"track-a"` used as an association ID in a test does not change these semantics. Tests must distinguish the identifier domains even when example values happen to be equal.
 
 ## Input Contract
 
@@ -338,7 +388,11 @@ The initial implementation must include tests for at least:
 19. unresolved evidence does not force unsupported identity or precision;
 20. valid spatial transforms are applied deterministically and their provenance is preserved;
 21. invalid spatial transforms are excluded explicitly rather than silently ignored;
-22. translation-only spatial transforms preserve velocity while applying the explicit velocity transform boundary.
+22. translation-only spatial transforms preserve velocity while applying the explicit velocity transform boundary;
+23. a Fusion association ID cannot be used as a Track ID or World Entity ID;
+24. a fused estimate's contributing Track IDs remain distinct from its association ID;
+25. `WorldEntity.sourceTrackId`, when populated, contains an actual Track ID and never a Fusion association ID;
+26. multi-track fused provenance does not collapse into an implied single Track identity merely because an association ID exists.
 
 ## Deferred Capabilities
 
@@ -371,6 +425,8 @@ Spatial transform support should remain similarly replaceable. The initial trans
 
 - Fusion combines compatible evidence but does not create authoritative world state.
 - Association is a supported claim, not proof of physical identity.
+- Track IDs, Fusion association IDs, and World Entity IDs remain semantically distinct.
+- A Fusion association ID must never be used where an actual Track ID or World Entity ID is required.
 - Confidence, uncertainty, freshness, and provenance remain distinct concepts.
 - Material disagreement is represented explicitly.
 - Evidence exclusions remain observable.
