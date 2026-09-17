@@ -77,7 +77,7 @@ class RelevancePriorityEngineTest {
 
     @Test
     void invalidAndStaleStateRemainVisibleInResult() {
-        PriorityPolicy policy = new PriorityPolicy(1, 0, 0, 0, 0, 0, 0, 100, 1, 0.25, 0.2, 0.2);
+        PriorityPolicy policy = new PriorityPolicy(1, 0, 0, 0, 0, 0, 0, 100, 1, 0.25, 0.2, 0.0);
         WorldEntity entity = entity("entity-1", 0, 0, 0, 0, 0.9, WorldEntityValidity.INVALID, WorldEntityFreshness.STALE);
         RelevancePriorityContext context = RelevancePriorityContext.at(T0);
 
