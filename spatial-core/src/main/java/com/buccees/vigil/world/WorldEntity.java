@@ -27,7 +27,6 @@ public record WorldEntity(
         Objects.requireNonNull(velocityMetersPerSecond, "velocityMetersPerSecond");
         Objects.requireNonNull(confidence, "confidence");
         Objects.requireNonNull(lastUpdated, "lastUpdated");
-        requireText(sourceTrackId, "sourceTrackId");
         contributingTrackIds = List.copyOf(Objects.requireNonNull(contributingTrackIds, "contributingTrackIds"));
         if (contributingTrackIds.isEmpty()) throw new IllegalArgumentException("contributingTrackIds must not be empty");
         detectionIds = List.copyOf(Objects.requireNonNull(detectionIds, "detectionIds"));
