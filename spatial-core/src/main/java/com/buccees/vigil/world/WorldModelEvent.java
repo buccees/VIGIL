@@ -9,7 +9,8 @@ public record WorldModelEvent(
         String id,
         Instant eventTime,
         String entityId,
-        String trackId,
+        String sourceTrackId,
+        String associationId,
         WorldModelUpdateOrigin origin,
         Type type,
         TrackLifecycleState stateBefore,
@@ -29,7 +30,12 @@ public record WorldModelEvent(
         requireText(id, "id");
         Objects.requireNonNull(eventTime, "eventTime");
         requireText(entityId, "entityId");
-        requireText(trackId, "trackId");
+        if (sourceTrackId == null && associationId == null) {
+            throw new IllegalArgumentException("sourceTrackId or associationId must be present");
+        }
+        if (sourceTrackId != null && associationId != null) {
+            throw new IllegalArgumentException("sourceTrackId and associationId are mutually exclusive");
+        }
         Objects.requireNonNull(origin, "origin");
         Objects.requireNonNull(type, "type");
         Objects.requireNonNull(stateAfter, "stateAfter");
