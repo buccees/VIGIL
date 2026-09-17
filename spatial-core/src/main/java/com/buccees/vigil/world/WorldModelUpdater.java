@@ -47,7 +47,7 @@ public final class WorldModelUpdater {
         WorldModelEvent.Type eventType = current == null
                 ? WorldModelEvent.Type.WORLD_ENTITY_CREATED
                 : eventTypeFor(track.lifecycleState());
-        publishEvent(next, current, track.id(), WorldModelUpdateOrigin.TRACK, List.of(track.id()), eventType);
+        publishEvent(next, current, track.id(), null, WorldModelUpdateOrigin.TRACK, List.of(track.id()), eventType);
         return next;
     }
 
@@ -78,7 +78,7 @@ public final class WorldModelUpdater {
         WorldModelEvent.Type eventType = current == null
                 ? WorldModelEvent.Type.WORLD_ENTITY_CREATED
                 : WorldModelEvent.Type.WORLD_ENTITY_UPDATED;
-        publishEvent(next, current, estimate.associationId(), WorldModelUpdateOrigin.FUSED_ESTIMATE,
+        publishEvent(next, current, null, estimate.associationId(), WorldModelUpdateOrigin.FUSED_ESTIMATE,
                 estimate.trackIds(), eventType);
         return next;
     }
@@ -104,14 +104,15 @@ public final class WorldModelUpdater {
         return "entity-" + nextEntityNumber++;
     }
 
-    private void publishEvent(WorldEntity next, WorldEntity current, String trackId,
+    private void publishEvent(WorldEntity next, WorldEntity current, String sourceTrackId, String associationId,
                               WorldModelUpdateOrigin origin, List<String> contributingTrackIds,
                               WorldModelEvent.Type eventType) {
         eventPublisher.publish(new WorldModelEvent(
                 "world-event-" + nextEventNumber++,
                 next.lastUpdated(),
                 next.id(),
-                trackId,
+                sourceTrackId,
+                associationId,
                 origin,
                 eventType,
                 current == null ? null : current.lifecycleState(),
@@ -137,7 +138,7 @@ public final class WorldModelUpdater {
 
     private static WorldEntity toEntity(String entityId, FusedEstimate estimate) {
         return new WorldEntity(entityId, estimate.type(), estimate.position(), estimate.velocityMetersPerSecond(),
-                estimate.confidence(), estimate.latestEventTime(), estimate.associationId(), estimate.trackIds(),
+                estimate.confidence(), estimate.latestEventTime(), null, estimate.trackIds(),
                 estimate.detectionIds(), TrackLifecycleState.CONFIRMED, WorldEntityValidity.VALID,
                 WorldEntityFreshness.CURRENT);
     }
