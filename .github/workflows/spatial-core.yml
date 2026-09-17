@@ -40,4 +40,4 @@ jobs:
           gradle-version: "8.10"
 
       - name: Run tests
-        run: gradle test --stacktrace
+        run: gradle test
