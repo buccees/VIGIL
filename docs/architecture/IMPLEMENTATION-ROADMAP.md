@@ -20,9 +20,9 @@ Primary contract:
 
 `docs/technical/SPATIAL-TEMPORAL-FUSION-CONTRACT.md`
 
-**Current state:** Active implementation and verification.
+**Current state:** Complete for the initial deterministic milestone; final implementation and boundary verification are complete.
 
-Recent completed work includes deterministic fusion, observable exclusions, freshness enforcement, source lifecycle policy, deterministic translation-only spatial transforms, transform provenance, and velocity handling through the transform boundary.
+Completed work includes deterministic fusion, observable exclusions, freshness enforcement, source lifecycle policy, deterministic translation-only spatial transforms, transform provenance, velocity handling through the transform boundary, and explicit separation of Track ID, Fusion association ID, and World Entity ID at the World Model boundary.
 
 ### 2. Relevance / Priority
 
@@ -67,11 +67,12 @@ No implementation milestone in this roadmap changes that boundary.
 
 ## Current Position
 
-**Current milestone:** Spatial / Temporal Fusion  
-**Current verified implementation commit:** `2231d05c` — Transform velocity into fusion frame  
-**Documentation checkpoint:** `97d4cab6`  
-**Last verified test result:** Gradle `test` passed; `:spatial-core:test` completed successfully.  
-**Next milestone:** Relevance / Priority, only after Fusion exit conditions are met.
+**Current milestone:** Relevance / Priority  
+**Previous completed milestone:** Spatial / Temporal Fusion  
+**Verified Fusion implementation commit:** `20f9c626` — Verify distinct fusion and track identity domains  
+**Documentation checkpoint:** pending current documentation commit  
+**Last verified Fusion test result:** CI workflow **Build and test Spatial Core** completed successfully for `20f9c626`.  
+**Next milestone:** Relevance / Priority
 
 ### Fusion Exit Checklist
 
@@ -88,11 +89,11 @@ No implementation milestone in this roadmap changes that boundary.
 - [x] Velocity passes through the spatial-transform boundary.
 - [x] Boundary tests for the completed Fusion behavior.
 - [x] Durable CI correction/attempt history established in `docs/architecture/PROJECT-HANDOFF.md`.
-- [ ] Reconcile remaining Track → World Model identity/association requirements.
-- [ ] Complete remaining Fusion contract gaps and tests.
-- [ ] Run final Fusion contract/integration verification.
+- [x] Reconcile Track → World Model identity/association requirements.
+- [x] Complete remaining Fusion contract gaps and tests.
+- [x] Run final Fusion contract/integration verification.
 
-**Fusion exit condition:** Fusion behavior, contracts, diagnostics, provenance, association, and World Model mutation boundaries are consistent, tested, and CI-verified.
+**Fusion exit condition:** **Satisfied.** Fusion behavior, contracts, diagnostics, provenance, association, and World Model mutation boundaries are consistent, tested, and CI-verified.
 
 ## Delivery Outlook
 
@@ -100,13 +101,13 @@ Dates are working targets, not promises. They are revised when implementation or
 
 | Milestone | Working target | Condition |
 |---|---|---|
-| Spatial / Temporal Fusion | **September 18, 2026** | Complete remaining Fusion gaps and final verification |
-| Relevance / Priority | **September 19–25, 2026** | Begins only after Fusion exit condition |
+| Spatial / Temporal Fusion | **September 18, 2026** | Complete — final verification passed |
+| Relevance / Priority | **September 19–25, 2026** | Begins after Fusion exit condition |
 | Attention / Presentation | **September 26–October 2, 2026** | Begins after Relevance / Priority exit |
 | Human Interaction / Voice | **October 3–9, 2026** | Begins after Attention / Presentation exit |
 | Integration / Testing | **October 10–18, 2026** | Release-gating integrated baseline |
 
-These targets are planning projections as of the 2026-09-16 handoff and may move with CI results, contract discoveries, or architectural dependencies.
+These targets are planning projections as of the 2026-09-17 documentation checkpoint and may move with CI results, contract discoveries, or architectural dependencies.
 
 ## Next Engineering Rule
 
