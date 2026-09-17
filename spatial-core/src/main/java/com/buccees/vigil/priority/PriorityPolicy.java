@@ -28,7 +28,9 @@ public record PriorityPolicy(
         requireUnit(staleMultiplier, "staleMultiplier");
         requireUnit(agingMultiplier, "agingMultiplier");
         requireUnit(invalidPriorityCeiling, "invalidPriorityCeiling");
-        if (totalWeight() <= 0.0) throw new IllegalArgumentException("At least one priority weight must be > 0");
+        double weightTotal = proximityWeight + movementWeight + stateChangeWeight + zoneWeight
+                + taskWeight + unexpectedWeight + persistenceWeight;
+        if (weightTotal <= 0.0) throw new IllegalArgumentException("At least one priority weight must be > 0");
     }
 
     public static PriorityPolicy defaults() {
