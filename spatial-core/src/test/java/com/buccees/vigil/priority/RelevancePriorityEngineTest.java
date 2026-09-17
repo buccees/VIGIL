@@ -129,7 +129,7 @@ class RelevancePriorityEngineTest {
     private static WorldEntity entity(String id, double x, double y, double z, double vx, double confidence,
                                       WorldEntityValidity validity, WorldEntityFreshness freshness) {
         return new WorldEntity(id, EntityType.PERSON, new LocalPosition(x, y, z), new LocalPosition(vx, 0, 0),
-                new Confidence(confidence), T0, "track-" + id, List.of("track-" + id), List.of("detection-" + id),
+                new Confidence(confidence), T0, "track-" + id, List.of("detection-" + id),
                 TrackLifecycleState.CONFIRMED, validity, freshness);
     }
 }
