@@ -2,7 +2,7 @@
 
 **Project:** VIGIL  
 **Full name:** Visual Intelligence & Geographic Information Layer  
-**Document version:** 0.3  
+**Document version:** 0.4  
 **Status:** Architecture approved for technical design  
 **Audience:** Project developers, reviewers, maintainers, and future contributors
 
@@ -10,242 +10,222 @@
 
 ## 1. Purpose
 
-VIGIL is an AI-powered environmental awareness and security platform.
+VIGIL is an information-first spatial and environmental awareness platform. It combines information from multiple authorized sources into a coherent, time-aware representation of an environment and presents useful information to a human user.
 
-Its purpose is to combine information from multiple authorized sources and turn that information into a coherent, evidence-grounded representation of an environment.
+VIGIL also provides a human interaction layer through which users can communicate with the system and receive responses textually and, optionally, verbally.
 
-Possible information sources include:
+Possible sources include cameras, GPS/GNSS, compass, IMU, maps, geographic databases, and other authorized sensors or data feeds.
 
-- Security and IP cameras
-- Phone and wearable cameras
-- GPS and other location systems
-- Compass and orientation sensors
-- IMU sensors
-- Maps and geographic databases
-- Other authorized sensors and data feeds
+VIGIL is designed for security monitoring, navigation, generic spatial targeting, search, inspection, environmental awareness, training, and simulation. The architecture is independent of particular hardware.
 
-VIGIL represents objects, locations, movement, events, environmental characteristics, and changes over time while preserving the distinction between source observations, derived perception, temporal continuity, fused evidence, authoritative world state, and AI interpretation.
-
-The architecture supports applications such as security monitoring, navigation, generic spatial targeting, search, inspection, environmental awareness, and simulation.
-
-The architecture remains independent of any particular camera, phone, AR headset, vehicle, or other hardware.
+VIGIL is an information and presentation system, not an autonomous physical-action system. It has no physical appendages or actuators. The human user remains the final interpreter, decision-maker, and actor.
 
 ---
 
 ## 2. Architectural Goals
 
-VIGIL SHALL be:
+VIGIL shall be:
 
-### Hardware independent
-
-The core system SHALL NOT require a particular camera, GPS receiver, phone, computer, wearable display, or other physical device.
-
-### Sensor independent
-
-Sensor-specific implementations SHALL remain replaceable behind defined interfaces without requiring unrelated core layers to depend on a particular sensor implementation.
-
-### Spatially aware
-
-VIGIL SHALL maintain a shared representation of supported environmental entities, spatial relationships, areas, and locations in the Spatial World Model.
-
-### Time aware
-
-VIGIL SHALL represent relevant event time, ingestion time, freshness, and ordering semantics so changes in the environment can be evaluated through time.
-
-### Uncertainty aware
-
-VIGIL SHALL preserve confidence, uncertainty, validity, data quality, and unresolved states where applicable rather than representing unsupported precision or certainty.
-
-### AI compatible
-
-AI SHALL reason over structured information and SHALL NOT own deterministic geometry, authoritative spatial state, or sensor plumbing that belongs to other architectural layers.
-
-### Extensible
-
-New sensors, perception models, displays, application modes, and AI models SHALL be addable through defined interfaces without changing unrelated architectural responsibilities.
-
-### Secure
-
-Access to cameras, stored data, alerts, system capabilities, and other protected resources SHALL be controlled and auditable according to applicable security contracts.
-
-### Testable
-
-Core functionality SHALL be testable without physical hardware through simulation, recorded data, deterministic services, and automated verification where applicable.
+- **Hardware independent** — the core does not depend on a particular camera, phone, computer, wearable, or display.
+- **Sensor independent** — sources can be replaced without rewriting the spatial core.
+- **Spatially aware** — the system maintains a shared representation of the environment.
+- **Time aware** — state, observations, and changes are explicitly time-qualified.
+- **Uncertainty aware** — confidence and uncertainty are preserved rather than hidden.
+- **AI compatible** — AI reasons over structured information instead of owning deterministic spatial truth.
+- **Human interactive** — users can query, inspect, configure supported presentation behavior, and receive grounded system responses through text and optional voice.
+- **Extensible** — new sensors, perception models, application modes, displays, and interaction providers can be added without redesigning the core.
+- **Secure and authorized** — sensitive sources, credentials, interactions, and data are controlled and auditable.
+- **Testable** — important behavior can be exercised through simulation and recorded data without physical hardware.
 
 ---
 
 ## 3. Core Architectural Principle
 
-The central rule in VIGIL is:
-
 > **Observation is not the same thing as understanding.**
 
-A camera may observe an object. A perception system may classify it. Tracking may establish temporal continuity among detections. Spatial/temporal fusion may combine compatible evidence and estimate spatial state. The Spatial World Model may represent the resulting supported belief. AI may then analyze that structured state and evidence in context.
+VIGIL separates source observations, perception, temporal continuity, spatial/temporal fusion, authoritative world state, derived spatial services, relevance and priority, presentation, human interaction, and optional AI analysis.
 
-These responsibilities SHALL remain separate.
+The canonical information path is:
 
-The canonical processing flow is:
+```text
+Sensors / Authorized Data Sources
+            ↓
+      Observations
+            ↓
+       Detections
+            ↓
+Tracking / Track Continuity
+            ↓
+     Spatial / Temporal Fusion
+            ↓
+     Spatial World Model
+            ↓
+Spatial / Environmental Services
+            ↓
+ Relevance & Priority Engine
+            ↓
+ Presentation / Attention Layer
+            ↓
+           USER
+            ↓
+ Human Decision / Action
+```
 
-**Authorized Source → Observation → Detection/Perception → Track Continuity → Spatial/Temporal Fusion → Spatial World Model → Spatial/Environmental Services → Relevance/Priority → Presentation/Attention → Human User → Human Decision/Action**
+Human interaction is a bidirectional interface with the user rather than a physical-action path:
 
-Supporting services such as event processing, security, logging, evidence/history, sensor health, and simulation operate within their defined boundaries and SHALL NOT create competing authority over the Spatial World Model.
+```text
+                 USER
+                ↕   ↕
+             Text  Voice
+                ↕   ↕
+       Human Interaction Layer
+                ↕
+     Structured VIGIL Information
+                ↕
+ World Model / Services / History
+```
+
+World-state changes produce history/events after the state change:
+
+```text
+World-state change
+        ↓
+ Events / History
+```
+
+Tracking is part of the pre-World-Model perception/fusion path. Events are not a perception stage; they describe meaningful changes to established or updated world state.
+
+AI operates as an optional information-analysis and query layer over structured world state, evidence, history, and conversational context. It is not the authority that determines physical truth, authorization, or physical action.
 
 ---
 
-## 4. High-Level Architecture
+## 4. Canonical Processing Lifecycle
 
-VIGIL is organized into the following major layers and supporting services.
+The architecture describes the complete intended lifecycle even though implementation is incremental.
 
-### Layer 1: Sensors and Data Sources
+1. **Acquire** information from authorized sensors and data sources.
+2. **Record Observations** with source identity, timing, quality, provenance, and uncertainty where available.
+3. **Perceive Detections** from observations using deterministic or probabilistic perception.
+4. **Maintain Tracks** to establish temporal continuity and estimate motion while preserving association uncertainty.
+5. **Fuse Spatially and Temporally** compatible evidence across sources, coordinate frames, and time.
+6. **Update the Spatial World Model** with the current supported belief about entities, areas, relationships, sensor state, and environment.
+7. **Update dependent spatial/environmental services** such as distance, bearing, proximity, area membership, and other deterministic relationships.
+8. **Record World-State Changes** as events/history while retaining the evidence and prior state needed for reconstruction.
+9. **Analyze optional context** through AI or other information-analysis services without silently replacing authoritative state.
+10. **Determine relevance and priority** for the user's current context and task.
+11. **Manage attention and presentation** so the most useful information receives appropriate visual salience without discarding lower-priority world state.
+12. **Present information** through a device-independent presentation model.
+13. **Communicate with the user** through textual and optional verbal interaction channels.
+14. **User interprets and decides** what to do with the presented information.
 
-Provides raw information to VIGIL from authorized sources.
+The implementation shall grow through this lifecycle rather than allowing an incomplete implementation to redefine the architecture.
 
-Examples:
+---
 
-- Cameras
-- GPS
-- Compass
-- IMU
-- Maps
-- Geographic databases
-- Other authorized sensors
+## 5. Major Architectural Layers
 
-This layer does not determine the authoritative meaning of the information.
+### 5.1 Sensors and Authorized Data Sources
 
-### Layer 2: Observation
+Provide raw information. They do not own VIGIL's world state.
 
-Converts authorized source input into timestamped observations.
+### 5.2 Observations
 
-An observation may state that a camera captured a frame at a particular time, that a GPS receiver reported a position, or that an IMU reported an orientation.
+Immutable source-level records describing what a source reported, including event time, ingest time where available, source identity, sensor type, quality, provenance, and payload references.
 
-Observations preserve their source identity, event timestamp, ingestion timestamp where applicable, quality, clock information, uncertainty, and provenance.
+### 5.3 Detections / Perception
 
-### Layer 3: Perception
+Represent perception results such as detected objects, features, scene changes, or sensor conditions. A detection is evidence, not automatically a persistent identity.
 
-Derives detections or other perception results from observations.
+### 5.4 Tracking / Track Continuity
 
-Examples:
+Associates compatible detections through time. Tracking maintains continuity, movement history, and estimated motion while preserving uncertainty and association confidence. A track is not automatically a permanent real-world identity.
 
-- Object detected
-- Vehicle detected
-- Sign detected
-- Building feature detected
-- Person detected where the deployment is authorized to process people
-- Scene changed
-- Camera view became obstructed
+### 5.5 Spatial / Temporal Fusion
 
-Perception produces evidence and detections. It does not own authoritative spatial world state and does not establish persistent identity merely by producing a detection.
+Combines compatible evidence across sensors, coordinate frames, and time. It preserves provenance, confidence, uncertainty, and conflicting or insufficient evidence rather than forcing unsupported certainty.
 
-### Layer 4: Track Continuity
+Tracking and fusion have distinct responsibilities: tracking establishes temporal continuity; fusion combines compatible evidence and estimates across sources and time.
 
-Maintains temporal associations among detections.
+### 5.6 Spatial World Model
 
-A track represents a time-linked association that may refer to the same physical entity. Track identity SHALL remain distinct from detection identity and World Entity identity.
+The Spatial World Model is VIGIL's authoritative current representation of environmental belief. It represents entities, locations, areas, relationships, sensors, environmental features, targets, confidence, uncertainty, provenance, and current validity.
 
-Track association SHALL preserve uncertainty and SHALL NOT be treated as confirmed physical identity when the evidence is insufficient.
+The World Model owns current spatial truth within VIGIL. It does not claim objective certainty for every value.
 
-Track management SHALL NOT directly mutate authoritative World Model state.
+### 5.7 Spatial / Environmental Services
 
-### Layer 5: Spatial and Temporal Fusion
+Deterministic services operate on the World Model. Examples include distance, bearing, relative direction, coordinate transformation, proximity, point-in-area, geometry relationships, route/path relationships, visibility where sufficient evidence exists, and spatial filtering.
 
-Combines compatible observations, detections, track information, sensor pose, calibration, timing, and other authorized evidence under the applicable fusion policy.
+### 5.8 Relevance and Priority
 
-Fusion SHALL preserve provenance, timing, confidence, uncertainty, freshness, validity, and material disagreement.
+Relevance describes usefulness to the user's context. Priority determines which valid information deserves attention first. Priority does not decide whether an entity exists in the World Model.
 
-Fusion SHALL NOT force a single answer when evidence remains materially conflicting or insufficient.
+Priority may consider proximity, movement, change rate, zone relationships, task relevance, unexpected appearance/disappearance, persistence, recurrence, and other explicit factors. Priority should be explainable and dynamically updated.
 
-Fusion SHALL NOT directly mutate authoritative World Model state. Fusion output crosses into authoritative state only through the controlled WorldModelUpdater boundary.
+Confidence and priority remain independent.
 
-### Layer 6: Spatial World Model
+### 5.9 Presentation / Attention
 
-The Spatial World Model is VIGIL's authoritative representation of its current supported belief about the environment.
+Presentation is a core subsystem, not merely a rendering detail. It manages human attention by selecting appropriate visual salience while retaining lower-priority information in world state and history.
 
-It contains structured information about:
+It must remain independent of the physical display technology.
 
-- World entities
-- Locations and geometry
-- Areas and zones
-- Generic spatial targets
-- Cameras and sensors
-- Routes and route relationships
-- Points of interest
-- Environmental features
-- Relationships
-- Current world state
-- Evidence and observations
-- World history
-- Confidence and uncertainty
-- Validity and freshness
+### 5.10 Information & Event Output / Integration
 
-The World Model represents current belief supported by available evidence. It does not assert objective certainty for every value.
+VIGIL may expose structured information, events, notifications, user-attention requests, navigation/search/inspection requests, simulation results, and other authorized outputs to external consumers.
 
-### Layer 7: Spatial and Environmental Services
+This is an **Information & Event Output / Integration layer**, not a physical-action or actuator layer. It exists so VIGIL can communicate useful information to authorized applications, services, user interfaces, or other systems without making VIGIL itself an action system.
 
-Deterministic services operate on authoritative World Model state or explicitly supplied validated inputs.
+Any external consequential action is outside VIGIL's core information/presentation boundary and requires its own authorized control and safety architecture.
 
-Examples:
+### 5.11 Human Interaction / Voice Interface
 
-- Distance calculation
-- Bearing calculation
-- Relative direction
-- Elevation relationships
-- Coordinate conversion
-- Object proximity
-- Movement and velocity relationships
-- Route relationships
-- Visibility relationships where sufficient data exists
-- Collision and proximity analysis
+The Human Interaction layer provides the bidirectional communication channel between VIGIL and its human user.
 
-Where applicable, these services SHALL return validity and uncertainty information with their results.
+It supports:
 
-They SHALL NOT become a competing source of authoritative environmental state.
+- textual input and output;
+- optional microphone-based speech input;
+- speech recognition and transcript metadata;
+- intent and query interpretation;
+- authorization and session validation;
+- conversational context;
+- textual response generation;
+- optional text-to-speech output;
+- system status and environmental summaries; and
+- grounded answers about current state and history.
 
-### Layer 8: Relevance, Priority, and Presentation/Attention
+The canonical interaction path is:
 
-Relevance describes usefulness to the active user or application context. Priority determines which valid information receives attention first.
+```text
+Text Input ───────────────┐
+                          ↓
+Microphone → Speech-to-Text → Interaction Request
+                                  ↓
+                         Authorization / Context
+                                  ↓
+                         World Model / Services
+                                  ↓
+                         Grounded Response Text
+                           ↙             ↘
+                     Text Output      Optional TTS
+                                           ↓
+                                       Voice Output
+```
 
-Priority SHALL NOT determine whether an entity exists in authoritative World Model state.
+Speech recognition is not identity or authorization. API authentication is not user authorization. Natural-language interpretation is not permission.
 
-Presentation SHALL manage human attention without becoming the source of environmental truth. Reduced presentation salience SHALL NOT delete authoritative state.
+VIGIL may describe its current operating condition in conversational language. For example, a "day" or "session" summary may characterize the environment as quiet, active, high-change, sensor-degraded, or unusually busy when those descriptions are grounded in measurable state such as observation volume, track activity, change rate, events, sensor health, and deviation from a defined baseline.
 
-### Layer 9: VIGIL AI
+Such summaries do not imply that VIGIL has human feelings or consciousness. Conversational personality is a presentation characteristic; underlying claims remain grounded in system state.
 
-The AI reasons over structured information produced by the lower layers.
+The interaction layer may request information or supported software-level presentation operations, but it does not gain physical-action authority.
 
-AI MAY:
+---
 
-- combine information from multiple sources;
-- explain observations and derived relationships;
-- compare current and previous states;
-- assess confidence and identify uncertainty;
-- summarize events and world state;
-- answer questions about available information;
-- explain evidence supporting a conclusion; and
-- provide bounded recommendations within an authorized application context.
+## 6. Application Modes
 
-AI SHALL NOT:
-
-- become the authoritative source of physical or environmental truth;
-- replace deterministic spatial calculations with unsupported interpretation where deterministic information is available;
-- silently rewrite authoritative World Model state;
-- bypass authorization; or
-- acquire physical-action authority through language, presentation, or conversational context.
-
-### Layer 10: Human Interaction
-
-Text and optional voice interfaces provide a bidirectional information channel between the human user and authorized VIGIL software functions.
-
-Human interaction SHALL NOT create physical-action authority.
-
-Authentication, authorization, session identity, speech recognition, and conversational context SHALL remain distinct concerns.
-
-Conversational context SHALL NOT silently expand authorization.
-
-### Layer 11: Application Modes
-
-Application modes determine operational context and the relevance, priority, and presentation of available information.
-
-Initial modes include:
+Application modes determine what information is relevant and how it is presented. Initial modes include:
 
 - Security monitoring
 - Navigation
@@ -255,596 +235,204 @@ Initial modes include:
 - Environmental awareness
 - Training and simulation
 
-Generic spatial targeting allows a user or authorized application to select, locate, follow, or present information about a spatial objective such as a destination, waypoint, point of interest, landmark, detected object, world entity, area, or user-defined location.
+**Generic spatial targeting** means selecting and following a spatial objective such as a destination, waypoint, point of interest, landmark, detected object, world entity, area, or user-defined location. It may expose location, distance, bearing, direction, movement, and contextual information.
 
-Generic spatial targeting SHALL remain independent of weapon control or consequential physical-action functionality. Weapon-control interfaces, firing solutions, ballistic calculations, and automated weapon engagement are outside VIGIL's architecture.
+Targeting is independent of weapon control. Weapon-control interfaces, firing solutions, ballistic calculations, automated weapon selection/engagement, trigger control, and actuator interfaces are outside VIGIL's architecture.
 
-Application modes SHALL NOT create competing authority over the Spatial World Model.
-
----
-
-## 5. Canonical Data Flow
-
-A typical camera input SHALL follow the architectural lifecycle below. Implementations may batch or internally decompose steps, but SHALL preserve the defined responsibility boundaries and ordering semantics.
-
-1. An authorized camera source provides a frame or measurement.
-2. The sensor adapter records the source identity and applicable timestamps and quality metadata.
-3. The observation layer creates an observation record.
-4. The perception layer analyzes the observation and creates one or more detections or other perception results.
-5. The tracking layer evaluates temporal continuity and creates or updates a track association with explicit confidence and uncertainty.
-6. The spatial/temporal fusion layer combines compatible evidence, including sensor pose, calibration, timing, and track information where applicable.
-7. The controlled WorldModelUpdater validates eligible derived state and updates the Spatial World Model.
-8. Spatial/environmental services calculate deterministic relationships from authoritative state or explicitly validated inputs.
-9. The event system records meaningful changes after authoritative state mutation.
-10. Relevance and priority determine which valid information receives attention in the active application context.
-11. Presentation and human-interaction layers present information or accept authorized software-level requests.
-12. AI may receive structured state, evidence, history, and authorized conversational context for bounded analysis or explanation.
-13. AI output SHALL preserve applicable confidence, uncertainty, provenance, validity, and semantic qualification.
-
-The same lifecycle principles apply to GPS, IMU, maps, and other authorized sources.
+Application modes may change relevance, priority, and presentation without creating a competing world-state authority.
 
 ---
 
-## 6. Spatial World Model
+## 7. World State, History, and Events
 
-The Spatial World Model is the central authoritative architectural component of VIGIL.
+VIGIL distinguishes:
 
-It represents the environment independently of how information was obtained while preserving evidence and derivation.
+- **Current World State** — what VIGIL currently believes exists or is happening.
+- **World History** — observations, detections, tracks, state transitions, and events that explain how current state developed.
+- **Events** — meaningful changes or occurrences derived from world-state transitions and supporting evidence.
 
-### 6.1 Current World State and World History
+Events occur after the relevant world-state change. They do not replace the state that produced them.
 
-VIGIL SHALL distinguish between:
+History must preserve provenance, timing, supporting evidence, and enough prior state to answer questions such as why a belief changed or when an entity entered an area.
 
-**Current World State** — the currently supported modelled belief about the environment.
-
-**World History** — observations, detections, tracks, state changes, and events that explain how the current state developed.
-
-History SHALL preserve sufficient provenance for the system to determine why a current belief exists when the required evidence remains available under retention policy.
-
-### 6.2 User State
-
-When VIGIL operates with a mobile user, the world model MAY contain:
-
-- Position
-- Altitude
-- Heading
-- Pitch
-- Roll
-- Timestamp
-- Position uncertainty
-- Orientation uncertainty
-- Pose source and quality
-
-When present, these values SHALL retain their source, validity, uncertainty, and time semantics.
-
-### 6.3 Objects and World Entities
-
-Objects SHALL be represented as generic spatial entities.
-
-An object may represent:
-
-- Vehicle
-- Person, when authorized
-- Sign
-- Building feature
-- Equipment
-- Landmark
-- Obstacle
-- Detected item
-- Custom-defined object
-- Unknown object
-
-A world entity may contain:
-
-- Unique identifier
-- Type and subtype
-- Position or geometry
-- Dimensions when known
-- Derived distance when applicable
-- Derived bearing when applicable
-- Direction of travel when known
-- Velocity when known
-- Confidence
-- Uncertainty
-- Tracking state
-- Observation sources
-- First observed time
-- Last observed time
-- Validity/freshness
-- Provenance
-- Metadata
-
-### 6.4 Detection, Track, and Entity Identity
-
-VIGIL SHALL distinguish among:
-
-- **Observation:** what an authorized source reported
-- **Detection:** what perception derived from an observation
-- **Track:** a temporal association among detections
-- **World Entity:** the model-level entity represented in the current world model
-
-The identity domains SHALL remain separate:
-
-`Detection ID ≠ Track ID ≠ World Entity ID`
-
-Associations SHALL be explicit, traceable, and qualified by confidence or other applicable evidence. An internally stable association SHALL NOT by itself establish physical identity.
-
-### 6.5 Targets
-
-The term **target** is generic in VIGIL.
-
-A target can be:
-
-- A destination
-- A waypoint
-- A point of interest
-- A landmark
-- A detected object
-- A world entity
-- A user-defined location
-- Another spatial objective
-
-A target is a selected spatial objective, not necessarily a distinct physical object. Target state SHALL reference the underlying world entity or location when applicable.
-
-Target handling SHALL remain independent of any weapon or weapon-control system.
-
-### 6.6 Areas and Zones
-
-The world model SHALL support spatial regions as well as points and objects.
-
-Examples include:
-
-- Buildings
-- Rooms
-- Properties
-- Roads
-- Paths
-- Parking areas
-- Monitoring zones
-- Restricted areas where authorized data is available
-- Geographic regions
-
-Objects and events MAY have relationships to areas, including entering, leaving, being inside, or being near a zone.
-
-### 6.7 Relationships
-
-VIGIL SHALL support explicit relationships among world entities.
-
-Examples include:
-
-- Observed-by
-- Associated-with
-- Inside
-- Near
-- Moving-toward
-- Located-in
-- Connected-to
-- Related-to
-
-Relationships SHALL preserve confidence and provenance where the relationship is inferred rather than directly established.
-
-Derived relationships SHALL remain distinguishable from source-declared relationships.
-
-### 6.8 Environment
-
-The environment model represents persistent or semi-persistent environmental characteristics and their supporting evidence.
-
-Examples include:
-
-- Buildings
-- Entrances and exits
-- Roads
-- Paths
-- Terrain
-- Obstacles
-- Open areas
-- Covered areas
-- Accessibility information
-- Visibility information
-- Restricted areas where authorized data is available
-- Environmental hazards
-
-The environment model SHALL distinguish objective or directly supported characteristics from derived characteristics and AI interpretation. Unsupported tactical assumptions SHALL NOT be promoted to environmental facts.
-
-### 6.9 Unknown and Insufficient Evidence
-
-VIGIL SHALL explicitly represent unknown or insufficiently known values.
-
-Unknown SHALL NOT be represented as zero, empty, false, or an AI guess.
-
-A conclusion SHALL remain distinguishable from a measured fact and from an unresolved value.
+Stale information becomes stale state; it is not silently erased from history.
 
 ---
 
-## 7. Cameras as Spatial Sensors
+## 8. Identity and Uncertainty
 
-Security cameras are a major VIGIL use case.
+VIGIL distinguishes:
 
-A camera SHALL be treated as a spatial sensor when its information contributes to spatial reasoning.
+```text
+Observation → Detection → Track → World Entity
+```
 
-Each camera may have metadata such as:
+These identities are related but not interchangeable. Association confidence and provenance must be retained.
 
-- Camera identifier
-- Location when known
-- Orientation when known
-- Field of view when known
-- Intrinsic calibration when available
-- Lens/distortion parameters when available
-- Mounting information when known
-- Calibration status
-- Calibration timestamp
-- Calibration uncertainty
-- Stream status
-- Timestamp quality
-- Authorized access information
+Unknown, stale, invalid, insufficient-evidence, calibration-uncertain, and timestamp-uncertain states must be representable explicitly.
 
-VIGIL's architecture supports multiple cameras observing the same environment.
-
-The system SHALL combine observations from different cameras only when the applicable spatial, temporal, authorization, and evidence requirements permit that combination.
-
-A camera failure, stale feed, obstructed view, moved camera, or uncertain calibration SHALL be represented explicitly when it affects derived state.
+Confidence describes support for a classification, association, or conclusion. Uncertainty describes possible error or range in an estimate. They are separate dimensions.
 
 ---
 
-## 8. Object Tracking
+## 9. Spatial Model
 
-Detection answers:
+VIGIL explicitly supports:
 
-> What was detected in an observation?
+- Global/geographic coordinates
+- Local world coordinates
+- Sensor coordinates
+- Device/user coordinates
+- Display coordinates
 
-Tracking answers:
+Transform chains, units, calibration, timing, and uncertainty must be explicit.
 
-> Which detections are associated through time under the available evidence?
-
-VIGIL tracking SHALL support:
-
-- Persistent track identifiers
-- Position history
-- Movement history
-- Velocity estimates where available
-- Confidence
-- Uncertainty
-- Lost and reacquired states
-- Multiple observation sources
-
-Tracking SHALL preserve uncertainty. An uncertain association SHALL NOT be treated as confirmed identity.
-
-Track state SHALL remain separate from authoritative World Model state and SHALL cross that boundary only through the controlled update mechanism.
+The World Model supports point objects, geometry, areas/zones, relationships, routes, environmental features, sensors, and targets.
 
 ---
 
-## 9. Event System
+## 10. Sensors, Health, and Time
 
-VIGIL SHALL distinguish between continuous state and events.
+Spatially relevant sensors have stable identities and explicit state including health, validity, calibration, data quality, and timestamp quality.
 
-For example:
+Recommended sensor states include healthy, degraded, stale, unavailable, invalid, calibration uncertain, and timestamp uncertain.
 
-**State:** A vehicle is present in an area.
-
-**Event:** A vehicle entered the area.
-
-Events SHALL contain enough information to reconstruct the relevant occurrence, including source, applicable timestamp, relevant objects, confidence, uncertainty, and supporting observations where available and permitted.
-
-Events that represent authoritative World Model changes SHALL be emitted only after the corresponding state mutation succeeds.
+Observations should preserve event time, ingest time, source-clock information, and timestamp uncertainty where available. Processing must tolerate delayed and out-of-order observations and clock differences.
 
 ---
 
-## 10. AI Reasoning Architecture
+## 11. Security, Authorization, and Privacy
 
-The AI SHALL operate on structured context produced by VIGIL rather than directly owning sensor state or authoritative spatial state.
+VIGIL may process sensitive environmental information. Authentication, authorization, data classification, auditability, retention, privacy controls, and provenance verification are architectural requirements.
 
-A preferred bounded reasoning sequence is:
+Only authorized sensors and data sources may be used. Security boundaries apply throughout the data lifecycle, not only at presentation.
 
-**Observation → Evidence → Analysis → Confidence → Uncertainty → Proposed Action → Verification**
+Human interaction adds separate security requirements for microphone permissions, user/session identity, API credentials, capability scopes, speech/transcript handling, and conversational history.
 
-For consequential software operations, the applicable authorization and human-decision boundaries SHALL be enforced before execution.
-
-The AI SHALL be able to communicate when available information is insufficient, unknown, stale, invalid, conflicting, or otherwise unresolved when that condition is material to the requested answer.
-
-The AI SHALL distinguish, where materially relevant, among established information, source observation, perception/detection, inference, estimate, uncertainty, unknown/unavailable information, stale/invalid information, conflicting evidence, recommendation, and AI interpretation.
-
-The AI SHALL identify the evidence and material assumptions supporting an important conclusion when that information is available.
-
-The AI SHALL NOT silently change authoritative World Model state merely because it generated an interpretation.
+Provider API keys and other long-lived service secrets must not be embedded in client-side code or exposed through ordinary logs. Client applications should use protected device credentials or server-mediated/short-lived session credentials where an external provider requires a secret key.
 
 ---
 
-## 11. Security Architecture
+## 12. AI Boundary
 
-Because VIGIL may process security-camera feeds and other sensitive environmental information, security is an architectural requirement rather than a user-interface-only concern.
+AI consumes structured world state, evidence, history, and, where authorized, conversational context. It may perform analysis, explanation, correlation, summarization, question answering, uncertainty assessment, or other information-analysis functions.
 
-The architecture SHALL provide defined boundaries for:
+AI output should identify supporting evidence, confidence, uncertainty, model/version where applicable, and whether the result is observation, inference, recommendation, or interpretation.
 
-- Authentication
-- Authorization
-- Per-camera access controls
-- Role-based permissions where appropriate
-- Secure communications
-- Protected credentials
-- Audit logging
-- Data retention controls
-- Privacy controls
-- Configurable recording policies
-- AI capability boundaries
-
-Security controls SHALL apply throughout the data flow rather than only at the user-interface layer.
-
-The system SHALL maintain an audit trail for significant automated decisions and administrative actions according to applicable retention and privacy requirements.
+AI must not silently rewrite authoritative world state, bypass authorization, or become an autonomous physical-action authority.
 
 ---
 
-## 12. Sensor Health and Data Quality
+## 13. Simulation and Hardware Abstraction
 
-VIGIL SHALL represent sensor and data-source health explicitly where it affects processing or interpretation.
+The architecture must be testable without specialized hardware. Simulated sensors and recorded data should use the same contracts as practical real sources.
 
-Possible states include:
+Hardware-specific implementations remain behind interfaces such as pose providers, object detectors, sensor adapters, microphone/audio providers, speech-recognition providers, speech-synthesis providers, and display providers.
 
-- Healthy
-- Degraded
-- Stale
-- Unavailable
-- Invalid
-- Calibration uncertain
-- Timestamp uncertain
-
-Data quality SHALL be available to downstream fusion, tracking, AI reasoning, and presentation where relevant.
-
-A missing or unreliable source SHALL NOT silently appear equivalent to a healthy source.
+Simulation should cover moving/static entities, sensor timing and uncertainty, camera conditions, failures, calibration problems, occlusion, areas, events, and human interaction failures.
 
 ---
 
-## 13. Time Model
+## 14. Performance and Latency
 
-Time is a first-class part of the architecture.
+Latency is measured from environmental acquisition to useful presentation, not merely frame rate.
 
-Observations and events SHALL preserve, where available:
+Important measurements include sensor acquisition, observation ingestion, perception, detection-to-track association, fusion, World Model update, prioritization, presentation, speech recognition, intent interpretation, and end-to-end environment-to-useful-response latency.
 
-- Source event timestamp
-- System ingestion timestamp
-- Source clock information
-- Timestamp uncertainty
+Observation age and data freshness are first-class information.
 
-The system SHALL account for time differences among multiple cameras and sensors when associating observations or reconstructing events.
-
-The architecture SHALL distinguish physical event/observation time from ingestion and processing time and SHALL tolerate delayed or out-of-order information without treating ingestion order as physical-event order.
+The fast path should remain low latency; expensive analysis or speech synthesis must not block immediate useful presentation.
 
 ---
 
-## 14. Simulation
+## 15. Development Strategy
 
-VIGIL SHALL remain useful before specialized hardware exists.
+The architecture is complete even though implementation is not. Engineering proceeds incrementally through the defined lifecycle.
 
-The simulator SHALL provide virtual versions of system inputs through the same or contract-equivalent interfaces used by real sensors wherever practical.
+The implementation sequence is:
 
-The simulator MAY model:
+1. Spatial foundations and deterministic math
+2. Observation → Detection → Track
+3. Track → Spatial World Model
+4. Track/entity lifecycle and stale-state behavior
+5. Temporal model and uncertainty
+6. Sensor abstraction and coordinate transformations
+7. Multi-sensor fusion
+8. Events/history and message contracts
+9. Performance and latency instrumentation
+10. Relevance, priority, and attention
+11. Presentation model
+12. Human interaction and voice interfaces
+13. Device integration
+14. Simulation, replay, and validation
+15. Application modes and authorized integrations
+16. Optional AI-assisted conversational analysis
 
-- GPS position
-- Heading and orientation
-- Camera observations
-- Moving objects
-- Static objects
-- Maps
-- Routes
-- Environmental features
-- Camera failures
-- Sensor uncertainty
-- Sensor timing problems
-- Object appearance/disappearance
-- Events
-
-Simulation SHALL support verification of core behavior without physical hardware.
-
----
-
-## 15. Hardware Abstraction
-
-Hardware-specific implementation SHALL remain behind interfaces.
-
-Conceptually, VIGIL supports abstractions such as:
-
-**Pose Provider**
-
-Provides position and orientation.
-
-Possible implementations:
-
-- Simulated pose provider
-- GPS/IMU provider
-- Visual odometry provider
-- Future sensor-fusion provider
-
-**Object Detector**
-
-Provides perception results or detections.
-
-Possible implementations:
-
-- Simulated detector
-- Recorded-data detector
-- Camera-based detector
-- Future AI perception model
-
-**Display Provider**
-
-Presents VIGIL information.
-
-Possible implementations:
-
-- Desktop
-- Phone
-- VR
-- AR glasses
-- Future visor
-
-The core SHALL NOT require knowledge of which physical device is being used.
+Incomplete implementation must not be treated as evidence that an architectural stage does not exist.
 
 ---
 
 ## 16. Repository Structure
 
-The initial repository is organized around responsibilities rather than individual hardware products.
+```text
+VIGIL/
+├── docs/
+│   ├── architecture/
+│   │   ├── VIGIL-ARCHITECTURE-SPEC.md
+│   │   └── DOCUMENTATION-RULES.md
+│   └── technical/
+│       ├── SPATIAL-WORLD-MODEL.md
+│       ├── TRACK-WORLD-MODEL-CONTRACT.md
+│       ├── SPATIAL-TEMPORAL-FUSION-CONTRACT.md
+│       └── HUMAN-INTERACTION-VOICE-CONTRACT.md
+├── spatial-core/
+├── perception/
+├── tracking/
+├── events/
+├── environment/
+├── navigation/
+├── security/
+├── ai/
+├── simulator/
+└── presentation/
+```
 
-A planned structure is:
-
-- `docs/` — project documentation
-- `spatial-core/` — spatial world model, coordinate systems, uncertainty, and deterministic spatial services
-- `perception/` — perception interfaces and implementations
-- `tracking/` — object tracking and identity association
-- `events/` — event processing
-- `environment/` — environmental model
-- `navigation/` — navigation and route functionality
-- `security/` — authorization, auditing, and security infrastructure
-- `ai/` — AI integration and reasoning interfaces
-- `simulator/` — hardware-independent simulation
-- `presentation/` — user interfaces and display adapters
-
-The exact programming-language and build-system choices remain technical-design decisions and SHALL be documented before implementation depends on them.
-
----
-
-## 17. Development Order
-
-VIGIL SHALL be developed from authoritative data foundations outward.
-
-### Phase 1 — Architecture
-
-Define responsibilities, interfaces, data ownership, security boundaries, semantic communication requirements, and testing strategy.
-
-### Phase 2 — Spatial Core
-
-Implement the Spatial World Model, coordinate/reference-frame handling, uncertainty representation, time semantics, provenance, and deterministic spatial calculations.
-
-### Phase 3 — Simulator
-
-Create simulated users, objects, sensors, cameras, areas, movement, and sensor-quality conditions.
-
-### Phase 4 — Tracking and Events
-
-Add temporal continuity, identity association, and event generation while preserving the Track → World Model boundary.
-
-### Phase 5 — Perception
-
-Add camera and recorded-data perception pipelines.
-
-### Phase 6 — AI Integration
-
-Add bounded AI reasoning over the structured world model and evidence/history with explicit semantic and authorization boundaries.
-
-### Phase 7 — Security Monitoring
-
-Add authorized multi-camera monitoring, alerts, audit logging, and administration.
-
-### Phase 8 — Navigation, Targeting, and Environmental Awareness
-
-Add route relationships, generic target selection/following, environmental characteristics, search, inspection, and related modes.
-
-### Phase 9 — Presentation and Human Interaction
-
-Build desktop and mobile interfaces, text interaction, authorized optional voice interaction, and later VR/AR integrations.
-
-### Phase 10 — Hardware Integration
-
-Integrate specialized sensors and future wearable hardware after the software architecture and contracts are stable.
+The repository is organized around responsibilities rather than particular hardware products.
 
 ---
 
-## 18. Testing Strategy
+## 17. Architectural Decision Summary
 
-Every major subsystem SHALL be testable independently within its defined contract boundary.
+The approved baseline establishes that:
 
-Testing SHALL include, as applicable:
-
-- Unit tests
-- Spatial math tests
-- Coordinate transformation tests
-- Time synchronization and association tests
-- Sensor simulation tests
-- Tracking tests
-- Identity-association tests
-- Event tests
-- AI input/output contract tests
-- Evidence/provenance tests
-- Security tests
-- Authorization tests
-- Semantic-clarity tests for customer-facing communication
-- Integration tests
-- End-to-end simulated scenarios
-
-The simulator SHALL form a core regression-testing capability.
-
-A change to deterministic core behavior SHALL be verifiable without physical hardware.
-
-Failed verification attempts SHALL be documented according to the Architecture Contract and applicable engineering documentation rules.
+1. VIGIL is an information and presentation system, not an autonomous physical-action system.
+2. Tracking is part of the pre-World-Model perception/fusion path.
+3. Spatial/temporal fusion combines compatible evidence while preserving uncertainty and provenance.
+4. The Spatial World Model owns authoritative current spatial belief.
+5. Spatial/environmental services operate on that shared world state.
+6. Relevance and priority control attention, not truth.
+7. Presentation manages human attention without becoming the source of spatial truth.
+8. World-state changes produce events/history after the state change.
+9. AI is an optional information-analysis/query layer over structured state and authorized conversational context.
+10. Information & Event Output / Integration provides authorized external information interfaces without making VIGIL an action/actuation system.
+11. Human Interaction / Voice provides bidirectional communication through text and optional speech.
+12. Speech recognition, identity, authentication, authorization, and intent interpretation are distinct concerns.
+13. Conversational summaries such as "what kind of day is VIGIL having?" must be grounded in measurable system state rather than implied human experience.
+14. Generic spatial targeting is informational and independent of weapon control.
+15. The full architecture lifecycle is the intended implementation target; code is being built incrementally through it.
+16. Security, authorization, privacy, provenance, uncertainty, time, simulation, and testability are architectural requirements.
 
 ---
 
-## 19. Architectural Boundaries
+## 18. Next Engineering Milestones
 
-The following boundaries are intentional and contractual.
+The architecture is now established through the human interaction boundary. The next implementation milestones are:
 
-### VIGIL is not a camera manufacturer
+1. **Spatial / Temporal Fusion** — implement the approved fusion contract and deterministic fused-estimate boundary.
+2. **Human Interaction foundation** — define request/response models and text interaction interfaces.
+3. **World Model query services** — expose grounded structured queries for conversational use.
+4. **Voice adapters** — add optional speech-to-text and text-to-speech provider interfaces with explicit authentication and privacy boundaries.
+5. **Conversation and session context** — support follow-up questions, status summaries, and grounded session/day descriptions.
+6. **Presentation and device integration** — connect interaction outputs to future headset/display/audio runtimes.
 
-Camera-specific code belongs behind sensor interfaces.
-
-### VIGIL is not a GPS application
-
-Location is one input to the shared spatial model.
-
-### VIGIL is not an AI-only application
-
-Deterministic spatial services remain separate from probabilistic AI reasoning.
-
-### VIGIL is not tied to one display
-
-The same world model supports desktop, mobile, VR, and future AR devices.
-
-### VIGIL is not dependent on physical hardware
-
-Simulation provides a hardware-independent path for development and verification.
-
-### VIGIL targeting is generic spatial targeting
-
-Targeting may select, follow, and present information about generic spatial objectives. It SHALL NOT provide weapon-control interfaces, firing solutions, ballistic calculations, or automated weapon engagement.
-
-### VIGIL customer-facing communication is semantically constrained
-
-Customer-facing text and voice SHALL communicate materially relevant information directly and accurately. Material uncertainty, limitation, ambiguity, conflict, staleness, invalidity, unavailable information, and authority boundaries SHALL be communicated when applicable. Customer-facing communication SHALL NOT create authority that does not exist in the underlying state or authorization model.
-
----
-
-## 20. Architectural Decision Summary
-
-The architecture establishes these decisions:
-
-1. The Spatial World Model is the central shared representation and authoritative current projection of supported environmental belief.
-2. Sensors produce observations rather than authoritative world state.
-3. Perception produces detections and evidence rather than authoritative world state.
-4. Tracking maintains temporal continuity and remains distinct from World Entity identity.
-5. Spatial/temporal fusion combines compatible sources while preserving provenance, timing, confidence, uncertainty, freshness, validity, and material disagreement.
-6. Fusion and tracking cross into authoritative world state only through the controlled WorldModelUpdater boundary.
-7. Deterministic spatial services handle geometry and spatial relationships without becoming a competing world-state authority.
-8. Detection, track, and world-entity identity are distinct concepts.
-9. Events represent meaningful changes and are emitted after authoritative state mutation when they represent state changes.
-10. Current world state and world history are distinct but connected.
-11. Areas and relationships are first-class spatial concepts.
-12. Unknown and insufficient evidence are explicitly representable.
-13. AI reasons over structured context and evidence and reports material uncertainty and semantic status.
-14. Application modes determine operational relevance, priority, and presentation without changing authoritative world state.
-15. Generic spatial targeting is independent of weapon-control functionality.
-16. Security, authorization, privacy, and auditing are architectural requirements across the system.
-17. Sensor health, data quality, and time quality are represented explicitly where relevant.
-18. Simulation is a first-class development and testing capability.
-19. Hardware is accessed through abstractions.
-20. Presentation and human interaction are separated from authoritative spatial state and physical-action authority.
-21. Customer-facing communication must preserve semantic meaning and material limitations and must not create unsupported authority.
-22. VIGIL remains a general environmental-awareness and spatial-information platform rather than a weapon-control system.
-
----
-
-## 21. What Comes Next
-
-This document is the approved architecture baseline for technical design. It establishes architectural responsibilities and boundaries; it does not replace component-specific technical contracts.
-
-The Spatial World Model technical design defines the detailed data structures, coordinate reference systems, units, timestamps, uncertainty representation, sensor/frame transformations, object lifecycle, identity model, relationships, target model, world-state/history model, interfaces, and testing contracts for the Spatial Core.
-
-Before implementation relies on a changed architectural behavior, affected technical contracts SHALL be reconciled and versioned according to the Architecture Contract.
+Implementation should continue to preserve the separation between environmental truth, analysis, communication, and human decision-making.
