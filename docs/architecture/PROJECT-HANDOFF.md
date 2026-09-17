@@ -1,19 +1,19 @@
 # VIGIL Project Handoff
 
 **Branch:** `feature/spatial-core`  
-**Last documented implementation commit:** `2231d05c` — Transform velocity into fusion frame  
-**Documentation checkpoint:** `84dee605`  
-**Handoff updated:** 2026-09-16
+**Last documented implementation commit:** `20f9c626` — Verify distinct fusion and track identity domains  
+**Documentation checkpoint:** `7b200618` — Mark Fusion milestone complete  
+**Handoff updated:** 2026-09-17
 
 ## Where We Left Off
 
-VIGIL is currently in the **Spatial / Temporal Fusion** milestone. The implementation sequence remains:
+VIGIL has completed the initial **Spatial / Temporal Fusion** milestone. The implementation sequence remains:
 
 **Fusion → Relevance / Priority → Attention / Presentation → Human Interaction / Voice → Integration / Testing**
 
-Do not advance to Relevance / Priority until Fusion's contract, implementation, diagnostics, provenance, and World Model boundary are complete and CI-verified.
+Fusion's contract, implementation, diagnostics, provenance, association boundaries, World Model boundary, and required verification are complete for the initial deterministic milestone. The next engineering milestone is **Relevance / Priority**.
 
-## Completed Since the Previous Handoff
+## Completed Fusion Work
 
 - Deterministic Fusion foundation implemented.
 - Confidence, uncertainty, freshness, and provenance preserved.
@@ -27,17 +27,24 @@ Do not advance to Relevance / Priority until Fusion's contract, implementation, 
 - Transform provenance is preserved in fused estimates.
 - Velocity is passed through the same explicit spatial-transform boundary before fusion.
 - Boundary tests were added for valid/invalid transforms and transformed velocity.
+- Track ID, Fusion association ID, and World Entity ID are explicitly separated.
+- Fused entities do not treat a Fusion association ID as an authoritative Track ID.
+- `WorldEntity.sourceTrackId`, when populated, is constrained to an actual contributing Track ID.
+- Multi-track fused provenance remains distinct from the Fusion association reference.
 
 ## Current Verified Checkpoint
 
-Commit `2231d05c` passed the Gradle test step:
+The current implementation checkpoint is commit `20f9c626`:
 
-- `:spatial-core:compileJava` passed.
-- `:spatial-core:compileTestJava` passed.
-- `:spatial-core:test` passed.
-- `BUILD SUCCESSFUL in 34s` was reported by the workflow output supplied during the handoff.
+- `20f9c626` verifies the distinct Fusion and Track identity domains.
+- The preceding boundary commits enforce optional source-track semantics, separate track and fusion association identity in world events, and enforce identity-domain separation at the World Model boundary.
+- The Fusion contract was synchronized to the verified transform and identity boundaries.
+- The roadmap was synchronized before this handoff update.
+- CI workflow **Build and test Spatial Core** completed successfully for `20f9c626`.
 
-The Gradle/Actions environment also reported Node 20 and `punycode` deprecation warnings. These were environment warnings, not VIGIL test failures.
+The verified Fusion exit condition is therefore satisfied for the initial deterministic milestone.
+
+The Gradle/Actions environment may report Node 20 and `punycode` deprecation warnings. These are environment warnings, not VIGIL test failures.
 
 ## CI Correction History
 
@@ -57,6 +64,15 @@ This history is intentionally kept here so future contributors can distinguish r
 - Commit `3c65ccc5` supplied the new transform-provenance argument to the test fixture.
 - The subsequent velocity-transform implementation was committed as `2231d05c` and its supplied Gradle test run passed.
 
+### Identity-domain work
+
+- The remaining Fusion exit work focused on the Track → World Model identity/association boundary.
+- `dc732b30` enforced optional source-track semantics for fused entities.
+- `80039a2f` separated Track identity from Fusion association identity in world events.
+- `96a85263` enforced identity-domain separation at the World Model boundary.
+- `20f9c626` verified that the distinct identity domains remain separate in the completed Fusion behavior.
+- The current CI verification for `20f9c626` completed successfully.
+
 ### Logging rule
 
 Whenever a workflow failure requires a correction and another push, update this handoff with:
@@ -75,15 +91,37 @@ The initial spatial transform remains intentionally **translation-only**. Rotati
 
 For a translation-only frame relationship, position is translated directly and velocity is passed through the explicit transform boundary unchanged. This keeps frame-dependent kinematics from bypassing the transform abstraction while avoiding premature general geometry infrastructure.
 
+Identity boundaries are equally explicit:
+
+```text
+Track ID
+   |
+   +--> contributing Track provenance
+   |
+   v
+Fusion association ID
+   |
+   v
+Fused Estimate
+   |
+   v
+WorldModelUpdater
+   |
+   v
+World Entity ID
+```
+
+The Fusion association ID is an association reference, not authoritative physical identity. World Model identity remains resolved through the updater using actual contributing Track IDs and Track → World Entity association state.
+
 ## Next Engineering Work
 
-The next step is to inspect the remaining Fusion contract requirements against the implementation and address the **next concrete gap**, one logical change at a time.
+Begin the **Relevance / Priority** milestone.
 
-Do not start Relevance / Priority yet.
+The next layer must remain separate from Fusion. Relevance/Priority may organize modeled information for the human's current context, but it must not redefine truth, confidence, uncertainty, provenance, Fusion association, Track identity, or authoritative World Entity identity.
 
 For every implementation step:
 
-1. identify the contract gap;
+1. identify the next contract gap;
 2. make one coherent implementation change;
 3. add/update boundary tests;
 4. run CI;
@@ -91,10 +129,12 @@ For every implementation step:
 6. verify the result;
 7. only then proceed.
 
+Do not expand Fusion's initial translation-only transform into a general geometry/calibration framework unless a later contract explicitly requires it.
+
 ## Authoritative References
 
 - `docs/architecture/IMPLEMENTATION-ROADMAP.md` — sequence, current position, and projected delivery windows.
-- `docs/technical/SPATIAL-TEMPORAL-FUSION-CONTRACT.md` — current Fusion behavioral contract.
+- `docs/technical/SPATIAL-TEMPORAL-FUSION-CONTRACT.md` — completed initial Fusion behavioral contract.
 - `docs/architecture/VIGIL-ARCHITECTURE-SPEC.md` — system architecture and boundaries.
 - `docs/architecture/AUTONOMY-HUMAN-DECISION-BOUNDARY.md` — human decision boundary.
 
