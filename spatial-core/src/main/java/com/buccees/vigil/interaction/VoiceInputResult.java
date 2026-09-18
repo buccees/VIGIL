@@ -15,7 +15,7 @@ public record VoiceInputResult(
             throw new IllegalArgumentException("denied microphone input must not contain recognition result");
     }
 
-    public Optional<SpeechRecognitionResult> recognition() {
+    public Optional<SpeechRecognitionResult> recognizedSpeech() {
         return Optional.ofNullable(recognition);
     }
 }
