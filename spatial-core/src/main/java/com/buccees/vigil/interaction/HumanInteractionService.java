@@ -55,14 +55,19 @@ public final class HumanInteractionService {
                     "Please specify the scope for the requested operation.",
                     now, "The operation is authorized, but its required scope is unspecified.");
         }
+        if (isAmbiguous(request)) {
+            return new HumanInteractionResponse(request.requestId(),
+                    HumanInteractionResponse.ResponseStatus.CLARIFICATION_REQUIRED,
+                    "Please clarify what you want VIGIL to do.",
+                    now, "The request is too ambiguous to interpret safely without guessing.");
+        }
 
         return authorization;
     }
 
     public HumanInteractionClarification clarify(HumanInteractionRequest request) {
         Objects.requireNonNull(request, "request");
-        if (request.recognizedText().trim().equalsIgnoreCase("do it")
-                || request.recognizedText().trim().equalsIgnoreCase("go ahead")) {
+        if (isAmbiguous(request)) {
             return new HumanInteractionClarification(request.requestId(),
                     ClarificationReason.AMBIGUOUS_REQUEST,
                     "What would you like VIGIL to do?");
@@ -73,5 +78,11 @@ public final class HumanInteractionService {
                     "What scope, area, entity, or time range should this operation use?");
         }
         return null;
+    }
+
+    private boolean isAmbiguous(HumanInteractionRequest request) {
+        return request.requestedOperation() == null
+                && (request.recognizedText().trim().equalsIgnoreCase("do it")
+                || request.recognizedText().trim().equalsIgnoreCase("go ahead"));
     }
 }
