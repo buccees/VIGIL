@@ -45,6 +45,62 @@ class HumanInteractionServiceTest {
         assertFalse(request.authorized());
     }
 
+    @Test
+    void sessionLifecycleIsExplicitAndImmutable() {
+        InteractionSession created = InteractionSession.create("session-1", NOW);
+        assertEquals(InteractionSessionState.CREATED, created.state());
+        assertFalse(created.acceptsInteraction());
+
+        InteractionSession active = created.activate(NOW.plusSeconds(1));
+        assertEquals(InteractionSessionState.ACTIVE, active.state());
+        assertTrue(active.acceptsInteraction());
+        assertEquals(InteractionSessionState.CREATED, created.state());
+
+        InteractionSession closed = active.close(NOW.plusSeconds(2));
+        assertEquals(InteractionSessionState.CLOSED, closed.state());
+        assertFalse(closed.acceptsInteraction());
+        assertThrows(IllegalStateException.class, () -> closed.touch(NOW.plusSeconds(3)));
+    }
+
+    @Test
+    void closedSessionCannotProcessRequest() {
+        InteractionSession session = InteractionSession.create("session-1", NOW).activate(NOW.plusSeconds(1))
+                .close(NOW.plusSeconds(2));
+        HumanInteractionResponse response = new HumanInteractionService().evaluate(
+                requestAuthenticated("r5", "VIEW", Set.of("VIEW")), session, NOW.plusSeconds(3));
+        assertEquals(HumanInteractionResponse.ResponseStatus.UNAVAILABLE, response.status());
+    }
+
+    @Test
+    void missingScopeProducesExplicitClarification() {
+        HumanInteractionRequest request = new HumanInteractionRequest(
+                "r6", "session-1", AuthenticationState.AUTHENTICATED,
+                new AuthorizationContext(Set.of("ANALYZE")), InputModality.TEXT,
+                "Analyze it", "ANALYZE", null, NOW, "text-input");
+        InteractionSession session = InteractionSession.create("session-1", NOW).activate(NOW.plusSeconds(1));
+
+        HumanInteractionService service = new HumanInteractionService();
+        HumanInteractionResponse response = service.evaluate(request, session, NOW.plusSeconds(2));
+        HumanInteractionClarification clarification = service.clarify(request);
+
+        assertEquals(HumanInteractionResponse.ResponseStatus.CLARIFICATION_REQUIRED, response.status());
+        assertNotNull(clarification);
+        assertEquals(ClarificationReason.MISSING_SCOPE, clarification.reason());
+    }
+
+    @Test
+    void ambiguousRequestIsNotGuessed() {
+        HumanInteractionRequest request = requestAuthenticated("r7", null, Set.of());
+        HumanInteractionService service = new HumanInteractionService();
+        HumanInteractionClarification clarification = service.clarify(
+                new HumanInteractionRequest("r7", "session-1", AuthenticationState.AUTHENTICATED,
+                        new AuthorizationContext(Set.of()), InputModality.TEXT,
+                        "do it", null, null, NOW, "text-input"));
+        assertEquals(ClarificationReason.AMBIGUOUS_REQUEST, clarification.reason());
+        assertEquals(HumanInteractionResponse.ResponseStatus.CLARIFICATION_REQUIRED,
+                service.evaluate(request, InteractionSession.create("session-1", NOW).activate(NOW.plusSeconds(1)), NOW.plusSeconds(2)).status());
+    }
+
     private static HumanInteractionRequest request(String id, InputModality modality, String operation, Set<String> permissions) {
         return new HumanInteractionRequest(id, "session-1", AuthenticationState.UNAUTHENTICATED,
                 new AuthorizationContext(permissions), modality, "What changed?", operation, "area-a", NOW,

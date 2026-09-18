@@ -25,4 +25,64 @@ public final class HumanInteractionService {
                 "Request is authenticated and authorized for processing.",
                 now, "Request identity, modality, authentication, authorization, and interpretation provenance are preserved.");
     }
+
+    public HumanInteractionResponse evaluate(HumanInteractionRequest request, InteractionSession session, Instant now) {
+        Objects.requireNonNull(request, "request");
+        Objects.requireNonNull(session, "session");
+        Objects.requireNonNull(now, "now");
+
+        if (!session.sessionId().equals(request.sessionId())) {
+            return new HumanInteractionResponse(request.requestId(),
+                    HumanInteractionResponse.ResponseStatus.UNAVAILABLE,
+                    "The request does not belong to the supplied interaction session.",
+                    now, "Session identity mismatch prevented processing.");
+        }
+        if (!session.acceptsInteraction()) {
+            return new HumanInteractionResponse(request.requestId(),
+                    HumanInteractionResponse.ResponseStatus.UNAVAILABLE,
+                    "The interaction session is not active.",
+                    now, "Closed or expired sessions do not accept new interaction.");
+        }
+
+        HumanInteractionResponse authorization = authorize(request, now);
+        if (authorization.status() != HumanInteractionResponse.ResponseStatus.ANSWERED) {
+            return authorization;
+        }
+
+        if (request.requestedOperation() != null && request.requestedScope() == null) {
+            return new HumanInteractionResponse(request.requestId(),
+                    HumanInteractionResponse.ResponseStatus.CLARIFICATION_REQUIRED,
+                    "Please specify the scope for the requested operation.",
+                    now, "The operation is authorized, but its required scope is unspecified.");
+        }
+        if (isAmbiguous(request)) {
+            return new HumanInteractionResponse(request.requestId(),
+                    HumanInteractionResponse.ResponseStatus.CLARIFICATION_REQUIRED,
+                    "Please clarify what you want VIGIL to do.",
+                    now, "The request is too ambiguous to interpret safely without guessing.");
+        }
+
+        return authorization;
+    }
+
+    public HumanInteractionClarification clarify(HumanInteractionRequest request) {
+        Objects.requireNonNull(request, "request");
+        if (isAmbiguous(request)) {
+            return new HumanInteractionClarification(request.requestId(),
+                    ClarificationReason.AMBIGUOUS_REQUEST,
+                    "What would you like VIGIL to do?");
+        }
+        if (request.requestedOperation() != null && request.requestedScope() == null) {
+            return new HumanInteractionClarification(request.requestId(),
+                    ClarificationReason.MISSING_SCOPE,
+                    "What scope, area, entity, or time range should this operation use?");
+        }
+        return null;
+    }
+
+    private boolean isAmbiguous(HumanInteractionRequest request) {
+        return request.requestedOperation() == null
+                && (request.recognizedText().trim().equalsIgnoreCase("do it")
+                || request.recognizedText().trim().equalsIgnoreCase("go ahead"));
+    }
 }
