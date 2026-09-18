@@ -97,7 +97,7 @@ class HumanInteractionServiceTest {
                         new AuthorizationContext(Set.of()), InputModality.TEXT,
                         "do it", null, null, NOW, "text-input"));
         assertEquals(ClarificationReason.AMBIGUOUS_REQUEST, clarification.reason());
-        assertEquals(HumanInteractionResponse.ResponseStatus.ANSWERED,
+        assertEquals(HumanInteractionResponse.ResponseStatus.CLARIFICATION_REQUIRED,
                 service.evaluate(request, InteractionSession.create("session-1", NOW).activate(NOW.plusSeconds(1)), NOW.plusSeconds(2)).status());
     }
 
