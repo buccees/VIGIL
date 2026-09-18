@@ -1,6 +1,6 @@
 # VIGIL Implementation Roadmap
 
-**Version:** 1.1  
+**Version:** 1.2  
 **Status:** Approved sequence / active implementation bookmark  
 **Purpose:** Persistent implementation direction and current-state bookmark for the next architectural milestones.
 
@@ -22,19 +22,32 @@ Primary contract:
 
 **Current state:** Complete for the initial deterministic milestone; final implementation and boundary verification are complete.
 
-Completed work includes deterministic fusion, observable exclusions, freshness enforcement, source lifecycle policy, deterministic translation-only spatial transforms, transform provenance, velocity handling through the transform boundary, and explicit separation of Track ID, Fusion association ID, and World Entity ID at the World Model boundary.
-
 ### 2. Relevance / Priority
 
 Determine which modeled information is most relevant to the human's current context and deserves attention.
 
 Priority is separate from truth, confidence, uncertainty, and fusion.
 
+Primary contract:
+
+`docs/technical/RELEVANCE-PRIORITY-CONTRACT.md`
+
+**Current state:** Complete for the initial deterministic milestone; implementation, boundary tests, correction history, and CI verification are complete.
+
+Verified implementation merge commit: `500563b3153cdc0cfcc41d8c04f1d3e747b4c19f`  
+Verified CI run: **#78** — successful.
+
 ### 3. Attention / Presentation
 
 Convert prioritized world information into persistent, understandable information for the user through the device/headset presentation layer.
 
 This layer owns presentation and attention management, not environmental truth.
+
+**Current state:** Next milestone.
+
+Primary contract:
+
+`docs/technical/ATTENTION-PRESENTATION-CONTRACT.md`
 
 ### 4. Human Interaction / Voice
 
@@ -57,6 +70,8 @@ All implementation remains subject to:
 - `docs/architecture/AUTONOMY-HUMAN-DECISION-BOUNDARY.md`
 - `docs/architecture/VIGIL-ARCHITECTURE-SPEC.md`
 - `docs/technical/SPATIAL-TEMPORAL-FUSION-CONTRACT.md`
+- `docs/technical/RELEVANCE-PRIORITY-CONTRACT.md`
+- `docs/technical/ATTENTION-PRESENTATION-CONTRACT.md`
 - `docs/technical/HUMAN-INTERACTION-VOICE-CONTRACT.md`
 
 ### Core Principle
@@ -67,33 +82,40 @@ No implementation milestone in this roadmap changes that boundary.
 
 ## Current Position
 
-**Current milestone:** Relevance / Priority  
-**Previous completed milestone:** Spatial / Temporal Fusion  
-**Verified Fusion implementation commit:** `20f9c626` — Verify distinct fusion and track identity domains  
-**Documentation checkpoint:** pending current documentation commit  
-**Last verified Fusion test result:** CI workflow **Build and test Spatial Core** completed successfully for `20f9c626`.  
-**Next milestone:** Relevance / Priority
+**Current milestone:** Attention / Presentation  
+**Previous completed milestone:** Relevance / Priority  
+**Verified Relevance / Priority merge commit:** `500563b3153cdc0cfcc41d8c04f1d3e747b4c19f`  
+**Verified Relevance / Priority implementation fix:** `f7324bcf` — correct record-constructor weight validation  
+**Verified Relevance / Priority CI:** Spatial Core CI **#78** — successful  
+**Next milestone:** Attention / Presentation
 
-### Fusion Exit Checklist
+### Relevance / Priority Exit Checklist
 
-- [x] Deterministic fusion foundation.
-- [x] Confidence, uncertainty, freshness, and provenance preservation.
-- [x] World Model mutation remains behind `WorldModelUpdater`.
-- [x] World Model update boundary is explicit and observable.
-- [x] Fusion exclusions/rejections are structured and observable.
-- [x] `FusedEstimate.qualified` semantics reconciled with the contract.
-- [x] Configurable stale/future evidence handling.
-- [x] Source lifecycle validity policy implemented.
-- [x] Deterministic translation-only spatial transform boundary.
-- [x] Transform provenance preservation.
-- [x] Velocity passes through the spatial-transform boundary.
-- [x] Boundary tests for the completed Fusion behavior.
-- [x] Durable CI correction/attempt history established in `docs/architecture/PROJECT-HANDOFF.md`.
-- [x] Reconcile Track → World Model identity/association requirements.
-- [x] Complete remaining Fusion contract gaps and tests.
-- [x] Run final Fusion contract/integration verification.
+- [x] Deterministic relevance/priority contract established.
+- [x] Explicit evaluation context.
+- [x] Replaceable scoring policy.
+- [x] Seven inspectable priority factors.
+- [x] Immutable derived priority results with source-state summary.
+- [x] Deterministic ordering by priority, then World Entity ID.
+- [x] Explicit unavailable-factor handling.
+- [x] Validity/freshness handling without World Model mutation.
+- [x] Boundary tests for determinism, proximity, state change, task relevance, invalid/stale state, missing context, tie-breaking, and low-priority preservation.
+- [x] CI correction history recorded in `PROJECT-HANDOFF.md`.
+- [x] Final implementation verification passed.
 
-**Fusion exit condition:** **Satisfied.** Fusion behavior, contracts, diagnostics, provenance, association, and World Model mutation boundaries are consistent, tested, and CI-verified.
+**Relevance / Priority exit condition:** **Satisfied.** The deterministic relevance/priority behavior, separation from authoritative World Model state, explainability, boundary tests, correction history, and CI verification are complete.
+
+### Attention / Presentation Entry Checklist
+
+- [ ] Define the Attention / Presentation contract.
+- [ ] Establish the boundary between priority results and presentation state.
+- [ ] Define persistent attention items and lifecycle semantics.
+- [ ] Define deterministic presentation ordering and replacement behavior.
+- [ ] Preserve source World Entity identity and provenance references.
+- [ ] Ensure presentation cannot mutate authoritative World Model truth.
+- [ ] Add boundary tests.
+- [ ] Run CI and record any correction history.
+- [ ] Verify the milestone before advancing.
 
 ## Delivery Outlook
 
@@ -102,12 +124,12 @@ Dates are working targets, not promises. They are revised when implementation or
 | Milestone | Working target | Condition |
 |---|---|---|
 | Spatial / Temporal Fusion | **September 18, 2026** | Complete — final verification passed |
-| Relevance / Priority | **September 19–25, 2026** | Begins after Fusion exit condition |
-| Attention / Presentation | **September 26–October 2, 2026** | Begins after Relevance / Priority exit |
+| Relevance / Priority | **September 19–25, 2026** | Complete — CI #78 passed |
+| Attention / Presentation | **September 26–October 2, 2026** | Next milestone |
 | Human Interaction / Voice | **October 3–9, 2026** | Begins after Attention / Presentation exit |
 | Integration / Testing | **October 10–18, 2026** | Release-gating integrated baseline |
 
-These targets are planning projections as of the 2026-09-17 documentation checkpoint and may move with CI results, contract discoveries, or architectural dependencies.
+These targets are planning projections as of the 2026-09-18 documentation checkpoint and may move with CI results, contract discoveries, or architectural dependencies.
 
 ## Next Engineering Rule
 
