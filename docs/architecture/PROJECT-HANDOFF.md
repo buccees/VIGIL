@@ -1,50 +1,35 @@
 # VIGIL Project Handoff
 
-**Branch:** `feature/spatial-core`  
-**Last documented implementation commit:** `20f9c626` — Verify distinct fusion and track identity domains  
-**Documentation checkpoint:** `7b200618` — Mark Fusion milestone complete  
-**Handoff updated:** 2026-09-17
+**Branch:** `main`  
+**Last documented implementation commit:** `500563b3153cdc0cfcc41d8c04f1d3e747b4c19f` — merge Relevance / Priority milestone  
+**Documentation checkpoint:** `5712ba2d` — advance roadmap to Attention / Presentation  
+**Handoff updated:** 2026-09-18
 
 ## Where We Left Off
 
-VIGIL has completed the initial **Spatial / Temporal Fusion** milestone. The implementation sequence remains:
+VIGIL has completed the initial **Spatial / Temporal Fusion** and **Relevance / Priority** milestones. The implementation sequence remains:
 
 **Fusion → Relevance / Priority → Attention / Presentation → Human Interaction / Voice → Integration / Testing**
 
-Fusion's contract, implementation, diagnostics, provenance, association boundaries, World Model boundary, and required verification are complete for the initial deterministic milestone. The next engineering milestone is **Relevance / Priority**.
+Fusion and Relevance / Priority contracts, implementations, diagnostics, provenance boundaries, World Model boundaries, required tests, correction histories, and CI verification are complete for their initial deterministic milestones.
 
-## Completed Fusion Work
+The next engineering milestone is **Attention / Presentation**.
 
-- Deterministic Fusion foundation implemented.
-- Confidence, uncertainty, freshness, and provenance preserved.
-- World Model mutation kept behind `WorldModelUpdater`.
-- World Model update boundary made explicit and observable.
-- Fusion exclusions made structured and observable.
-- `FusedEstimate.qualified` semantics reconciled with the contract.
-- Configurable freshness enforcement added; stale and future-dated evidence is explicitly excluded.
-- Invalid source lifecycle states are explicitly excluded; degraded evidence remains usable but produces an unqualified result when policy requires.
-- Deterministic translation-only spatial frame transforms added.
-- Transform provenance is preserved in fused estimates.
-- Velocity is passed through the same explicit spatial-transform boundary before fusion.
-- Boundary tests were added for valid/invalid transforms and transformed velocity.
-- Track ID, Fusion association ID, and World Entity ID are explicitly separated.
-- Fused entities do not treat a Fusion association ID as an authoritative Track ID.
-- `WorldEntity.sourceTrackId`, when populated, is constrained to an actual contributing Track ID.
-- Multi-track fused provenance remains distinct from the Fusion association reference.
+## Completed Relevance / Priority Work
 
-## Current Verified Checkpoint
-
-The current implementation checkpoint is commit `20f9c626`:
-
-- `20f9c626` verifies the distinct Fusion and Track identity domains.
-- The preceding boundary commits enforce optional source-track semantics, separate track and fusion association identity in world events, and enforce identity-domain separation at the World Model boundary.
-- The Fusion contract was synchronized to the verified transform and identity boundaries.
-- The roadmap was synchronized before this handoff update.
-- CI workflow **Build and test Spatial Core** completed successfully for `20f9c626`.
-
-The verified Fusion exit condition is therefore satisfied for the initial deterministic milestone.
-
-The Gradle/Actions environment may report Node 20 and `punycode` deprecation warnings. These are environment warnings, not VIGIL test failures.
+- Deterministic Relevance / Priority contract established in `docs/technical/RELEVANCE-PRIORITY-CONTRACT.md`.
+- Explicit evaluation context established.
+- Replaceable deterministic scoring policy established.
+- Seven inspectable priority factors implemented.
+- Immutable derived priority results preserve source-state summary.
+- Deterministic ordering uses priority, then World Entity ID.
+- Missing evaluation context is represented explicitly rather than guessed.
+- Validity and freshness affect derived priority without mutating authoritative World Model state.
+- Low-priority entities remain present in the World Model.
+- Boundary tests cover determinism, proximity, state change, task relevance, invalid/stale state, missing context, tie-breaking, and low-priority preservation.
+- The compact-constructor validation bug in `PriorityPolicy` was corrected in commit `f7324bcf`.
+- Verification CI run **#78** completed successfully.
+- PR #2 was merged into `main` as merge commit `500563b3153cdc0cfcc41d8c04f1d3e747b4c19f`.
 
 ## CI Correction History
 
@@ -66,12 +51,19 @@ This history is intentionally kept here so future contributors can distinguish r
 
 ### Identity-domain work
 
-- The remaining Fusion exit work focused on the Track → World Model identity/association boundary.
 - `dc732b30` enforced optional source-track semantics for fused entities.
 - `80039a2f` separated Track identity from Fusion association identity in world events.
 - `96a85263` enforced identity-domain separation at the World Model boundary.
 - `20f9c626` verified that the distinct identity domains remain separate in the completed Fusion behavior.
 - The current CI verification for `20f9c626` completed successfully.
+
+### Relevance / Priority work
+
+- Workflow runs **#67 through #76** failed during the Relevance / Priority implementation sequence.
+- The failures traced to a Java record compact-constructor bug in `PriorityPolicy`: the constructor called `totalWeight()` before the record's implicit field assignment, so the accessor observed default zero values and rejected valid policies.
+- Commit `f7324bcf` corrected the constructor to calculate the validation total directly from constructor parameters.
+- Workflow run **#78** verified the correction successfully.
+- PR #2 was then merged into `main` as `500563b3153cdc0cfcc41d8c04f1d3e747b4c19f`.
 
 ### Logging rule
 
@@ -85,39 +77,30 @@ Whenever a workflow failure requires a correction and another push, update this 
 
 This is a durable project record and should not depend on conversation history.
 
-## Current Fusion Boundary
+## Current Architectural Boundary
 
-The initial spatial transform remains intentionally **translation-only**. Rotation, scale, arbitrary nonlinear/geographic transforms, advanced uncertainty propagation, and calibration frameworks are deferred until their architectural dependencies require them.
+Relevance / Priority consumes authoritative World Entities and produces derived information for downstream attention management. It does not redefine:
 
-For a translation-only frame relationship, position is translated directly and velocity is passed through the explicit transform boundary unchanged. This keeps frame-dependent kinematics from bypassing the transform abstraction while avoiding premature general geometry infrastructure.
+- truth;
+- confidence;
+- uncertainty;
+- provenance;
+- Track identity;
+- Fusion association;
+- authoritative World Entity identity; or
+- authoritative World Model state.
 
-Identity boundaries are equally explicit:
-
-```text
-Track ID
-   |
-   +--> contributing Track provenance
-   |
-   v
-Fusion association ID
-   |
-   v
-Fused Estimate
-   |
-   v
-WorldModelUpdater
-   |
-   v
-World Entity ID
-```
-
-The Fusion association ID is an association reference, not authoritative physical identity. World Model identity remains resolved through the updater using actual contributing Track IDs and Track → World Entity association state.
+The next Attention / Presentation layer must preserve the same separation. Presentation may decide what is persistent, visible, audible, queued, replaced, or acknowledged at the human interface, but it must not become a second World Model.
 
 ## Next Engineering Work
 
-Begin the **Relevance / Priority** milestone.
+Begin the **Attention / Presentation** milestone.
 
-The next layer must remain separate from Fusion. Relevance/Priority may organize modeled information for the human's current context, but it must not redefine truth, confidence, uncertainty, provenance, Fusion association, Track identity, or authoritative World Entity identity.
+Primary entry contract:
+
+`docs/technical/ATTENTION-PRESENTATION-CONTRACT.md`
+
+The first implementation pass should establish the contract before adding presentation behavior.
 
 For every implementation step:
 
@@ -129,12 +112,23 @@ For every implementation step:
 6. verify the result;
 7. only then proceed.
 
-Do not expand Fusion's initial translation-only transform into a general geometry/calibration framework unless a later contract explicitly requires it.
+## Attention / Presentation Entry Checklist
+
+- [ ] Define the Attention / Presentation contract.
+- [ ] Establish the boundary between priority results and presentation state.
+- [ ] Define persistent attention items and lifecycle semantics.
+- [ ] Define deterministic presentation ordering and replacement behavior.
+- [ ] Preserve source World Entity identity and provenance references.
+- [ ] Ensure presentation cannot mutate authoritative World Model truth.
+- [ ] Add boundary tests.
+- [ ] Run CI and record any correction history.
+- [ ] Verify the milestone before advancing.
 
 ## Authoritative References
 
-- `docs/architecture/IMPLEMENTATION-ROADMAP.md` — sequence, current position, and projected delivery windows.
+- `docs/architecture/IMPLEMENTATION-ROADMAP.md` — sequence and current position.
 - `docs/technical/SPATIAL-TEMPORAL-FUSION-CONTRACT.md` — completed initial Fusion behavioral contract.
+- `docs/technical/RELEVANCE-PRIORITY-CONTRACT.md` — completed initial Relevance / Priority behavioral contract.
 - `docs/architecture/VIGIL-ARCHITECTURE-SPEC.md` — system architecture and boundaries.
 - `docs/architecture/AUTONOMY-HUMAN-DECISION-BOUNDARY.md` — human decision boundary.
 
