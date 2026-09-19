@@ -1,9 +1,9 @@
 # VIGIL Project Handoff
 
 **Branch:** `main`  
-**Last documented implementation commit:** `74dd64759f77e03e3774e78a0e9f6b0a33d762d3` — merge Attention / Presentation milestone  
+**Last documented implementation commit:** `3afd8cbcf1587bd82f44fed1a25b79a3e5236dec` — test Human Interaction confirmation boundary  
 **Documentation checkpoint:** `e3bc0e5b` — advance roadmap to Human Interaction / Voice  
-**Handoff updated:** 2026-09-18
+**Handoff updated:** 2026-09-19
 
 ## Where We Left Off
 
@@ -59,13 +59,59 @@ This history is intentionally durable.
 - Workflow run **#85** completed successfully on the implementation head `1d2f7b032f399b5cc7b9a2796fc5854377de2902`.
 - PR #3 merged as `74dd64759f77e03e3774e78a0e9f6b0a33d762d3`.
 
+## Human Interaction / Voice Progress
+
+The Human Interaction / Voice milestone is now implemented through the explicit confirmation boundary.
+
+Completed boundary work:
+- Interaction session lifecycle implemented with explicit CREATED, ACTIVE, CLOSED, and EXPIRED states.
+- Clarification and ambiguity handling implemented without guessing user intent.
+- Attention-to-interaction handoff preserves explicit authentication and authorization rather than inventing credentials.
+- Voice input/output boundaries represent microphone permission and recognition failure explicitly.
+- Speech-adapter runtime failures are contained at the voice boundary.
+- Response provenance is preserved into speech synthesis requests.
+- Human confirmation is represented as a separate, immutable decision object tied to request, session, operation, and scope.
+- Confirmation and decline require an explicit matching confirmation request and cannot cross operation boundaries.
+- Authorized requested operations now return CONFIRMATION_REQUIRED; authorization alone is not treated as human confirmation.
+- Information-only interaction remains answerable without confirmation.
+- Boundary tests cover confirmation creation, explicit confirmation/decline, authorization separation, operation mismatch, and interaction-layer confirmation integration.
+- Confirmation objects contain no executor or operation-authority mechanism.
+
+Recent implementation commits:
+- `099d743d918b87b1058e749372b970843a0813d5` — Preserve authentication at attention handoff boundary
+- `e783447fa020ba699f79063497698d58e3bb7b92` — Test attention handoff authentication boundary
+- Voice recognition failure status and adapter containment commits
+- `83788b94a46701271692821cc08c32dc108523e4` — Preserve response provenance into speech synthesis
+- `449f205416c80c9ac75872171cbb76f831910eff` — Verify speech synthesis response provenance
+- `18f36a8d8cf71cc5ad4ca5f89fd46cae8db39df1` — Bind human decisions to an explicit confirmation request
+- `f8fdb29e43a604a449b86e09fdaf0c8a57ca9387` — Verify confirmation cannot cross operation boundaries
+- `c8348000bcc76f7b21718b8b61f4c72f823e7baa` — Fix confirmation boundary test compilation error
+- `6689468e86a79110ce225de4ec598d42d9cef56b` — Represent explicit human confirmation at interaction boundary
+- `3cdba989236cf473bf0a0e60535319c1c3dad70a` — Require human confirmation before requested operations
+- `3afd8cbcf1587bd82f44fed1a25b79a3e5236dec` — Test interaction confirmation boundary integration
+
+CI correction notes:
+- The confirmation mismatch test initially failed at compileTestJava because required was declared twice in one test method.
+- Commit `c8348000bcc76f7b21718b8b61f4c72f823e7baa` removed the duplicate declaration.
+- No failed run is currently associated with the latest confirmation integration commit.
+
+Human Interaction / Voice exit state:
+- [x] Session lifecycle.
+- [x] Clarification / ambiguity handling.
+- [x] Attention-to-interaction handoff.
+- [x] Voice input/output adapters.
+- [x] Speech and response provenance.
+- [x] Explicit confirmation boundary for consequential/requested operations.
+- [x] Final implementation verification checkpoint.
+
+The next milestone is **Integration / Testing**.
 ## Current Architectural Boundary
 
 Attention / Presentation consumes derived Priority Results and owns presentation state only. It must not become a second World Model or change environmental truth, confidence, validity, freshness, provenance, Track identity, Fusion association, or World Entity identity.
 
 ## Next Engineering Work
 
-Begin the **Human Interaction / Voice** milestone.
+Begin the **Integration / Testing** milestone.
 
 Primary contract:
 
