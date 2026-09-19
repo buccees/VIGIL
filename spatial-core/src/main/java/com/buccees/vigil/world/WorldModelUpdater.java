@@ -7,6 +7,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
+import java.util.Collections;
 
 /** Controlled boundary that projects validated track and fusion state into the authoritative World Model. */
 public final class WorldModelUpdater {
@@ -97,8 +99,13 @@ public final class WorldModelUpdater {
         worldModel.updateFreshness(now, agingAfter, staleAfter);
     }
 
+    /**
+     * Returns a read-only association snapshot with stable Track-ID ordering.
+     * The association state is externally observable and must not depend on HashMap
+     * iteration behavior during replay, testing, or downstream serialization.
+     */
     public synchronized Map<String, String> trackEntityAssociations() {
-        return Map.copyOf(trackToEntity);
+        return Collections.unmodifiableMap(new TreeMap<>(trackToEntity));
     }
 
     private String resolveFusedEntity(FusedEstimate estimate) {
