@@ -32,6 +32,7 @@ class DeterministicFusionEngineTest {
         assertEquals(0.0, result.position().zM(), 1.0e-9);
         assertEquals(2.8571428571, result.positionUncertaintyMeters().orElseThrow(), 1.0e-9);
         assertEquals(List.of("camera-a", "camera-b"), result.sourceIds());
+        assertEquals("fusion:track-a+track-b", result.deterministicAssociationKey());
         assertEquals(List.of("track-a", "track-b"), result.trackIds());
         assertTrue(result.transformProvenance().isEmpty());
         assertTrue(result.qualified());
