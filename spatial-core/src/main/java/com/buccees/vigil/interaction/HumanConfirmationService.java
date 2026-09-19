@@ -17,19 +17,38 @@ public final class HumanConfirmationService {
                 now);
     }
 
-    public HumanConfirmation confirm(HumanConfirmationRequest request, Instant now) {
-        return decide(request, ConfirmationStatus.CONFIRMED, now);
-    }
-
-    public HumanConfirmation decline(HumanConfirmationRequest request, Instant now) {
-        return decide(request, ConfirmationStatus.DECLINED, now);
-    }
-
-    private HumanConfirmation decide(HumanConfirmationRequest request, ConfirmationStatus status, Instant now) {
+    public HumanConfirmation confirm(HumanConfirmation required, HumanConfirmationRequest request, Instant now) {
+        Objects.requireNonNull(required, "required");
         Objects.requireNonNull(request, "request");
         Objects.requireNonNull(now, "now");
-        return new HumanConfirmation(request.confirmationId(), request.requestId(), request.sessionId(),
-                request.operation(), request.scope(), status, now);
+        requireRequiredMatch(required, request);
+        return new HumanConfirmation(required.confirmationId(), required.requestId(), required.sessionId(),
+                required.operation(), required.scope(), ConfirmationStatus.CONFIRMED, now);
+    }
+
+    public HumanConfirmation decline(HumanConfirmation required, HumanConfirmationRequest request, Instant now) {
+        Objects.requireNonNull(required, "required");
+        Objects.requireNonNull(request, "request");
+        Objects.requireNonNull(now, "now");
+        requireRequiredMatch(required, request);
+        return new HumanConfirmation(required.confirmationId(), required.requestId(), required.sessionId(),
+                required.operation(), required.scope(), ConfirmationStatus.DECLINED, now);
+    }
+
+    private void requireRequiredMatch(HumanConfirmation required, HumanConfirmationRequest request) {
+        if (required.status() != ConfirmationStatus.REQUIRED) {
+            throw new IllegalStateException("Confirmation is not awaiting a human decision");
+        }
+        if (!required.confirmationId().equals(request.confirmationId())
+                || !required.requestId().equals(request.requestId())
+                || !required.sessionId().equals(request.sessionId())
+                || !required.operation().equals(request.operation())
+                || !required.scope().equals(request.scope())) {
+            throw new IllegalArgumentException("Confirmation request does not match the required confirmation");
+        }
+        if (request.requestedAt().isBefore(required.decidedAt())) {
+            throw new IllegalArgumentException("Confirmation request predates the confirmation request");
+        }
     }
 
     private String requireNonBlank(String value, String name) {
