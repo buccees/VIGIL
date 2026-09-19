@@ -118,6 +118,24 @@ class WorldModelUpdaterFusionTest {
     }
 
     @Test
+    void rejectedFusedEstimateDoesNotAlterTrackEntityAssociations() {
+        WorldModel worldModel = new WorldModel();
+        WorldModelUpdater updater = new WorldModelUpdater(worldModel);
+
+        WorldEntity first = updater.update(estimate("track-a", List.of("track-a"), T0, 0.0));
+        WorldEntity second = updater.update(estimate("track-b", List.of("track-b"), T0.plusSeconds(1), 10.0));
+
+        var before = updater.trackEntityAssociations();
+
+        assertThrows(IllegalArgumentException.class,
+                () -> updater.update(estimate("fusion-track-a-track-b", List.of("track-a", "track-b"), T0.plusSeconds(2), 5.0)));
+
+        assertEquals(before, updater.trackEntityAssociations());
+        assertEquals(first.id(), updater.trackEntityAssociations().get("track-a"));
+        assertEquals(second.id(), updater.trackEntityAssociations().get("track-b"));
+    }
+
+    @Test
     void fusedEstimateWithDistinctExistingEntitiesIsRejectedWithoutMutation() {
         WorldModel worldModel = new WorldModel();
         WorldModelUpdater updater = new WorldModelUpdater(worldModel);
