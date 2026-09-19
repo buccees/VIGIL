@@ -1,6 +1,6 @@
 # Spatial / Temporal Fusion Contract
 
-**Version:** 0.3  
+**Version:** 0.4  
 **Status:** Active implementation / verification
 
 ## Purpose
@@ -176,7 +176,9 @@ Fusion should distinguish at least:
 - calibration uncertain;
 - timestamp uncertain.
 
-A degraded source must not automatically invalidate all other compatible evidence. Degraded evidence may be reduced, rejected, or deferred according to explicit policy.
+A degraded source must not automatically invalidate all other compatible evidence. Degraded evidence may be accepted or excluded according to explicit fusion policy. When accepted, degraded evidence may contribute to an estimate, but it must not make the resulting estimate qualified as fully healthy evidence.
+
+The initial implementation exposes this choice as an explicit policy setting. Rejecting degraded evidence produces an INVALID_SOURCE_STATE exclusion; accepting it preserves the evidence in provenance while marking the estimate unqualified.
 
 Calibration uncertainty should be distinguishable from measurement uncertainty when the data model supports that distinction.
 
@@ -242,6 +244,23 @@ Acceptable outcomes include:
 Fusion must not blindly average materially inconsistent evidence. Provenance and quality metadata must explain the selected outcome.
 
 `MATERIAL_DISAGREEMENT` is observable and does not mean that the entire fusion operation failed. The `qualified` field means that the result is suitable as a qualified result under policy; it does not mean that the result is conflict-free.
+
+## Qualification Semantics
+
+Qualification is a policy-level statement about whether the produced estimate meets the configured evidence-quality requirements for a qualified result. It is not a claim of physical truth, identity certainty, or perfect measurement.
+
+The initial deterministic implementation defines these rules:
+
+- healthy, temporally eligible, spatially compatible evidence may produce a qualified estimate;
+- accepted degraded evidence may contribute, but the estimate is unqualified;
+- material disagreement produces an explicitly unqualified deterministic subset;
+- rejected degraded, stale, terminated, or otherwise invalid evidence is excluded and does not by itself make a remaining valid estimate unqualified;
+- missing uncertainty does not by itself make an estimate unqualified; uncertainty remains explicitly unavailable;
+- qualified = true therefore means the selected evidence satisfies the configured qualification policy, not that the result is conflict-free or physically certain.
+
+qualityNote must explain material qualification conditions such as degraded contribution or material disagreement. Exclusion diagnostics remain separate from the estimate's qualification state.
+
+Qualification policy must remain deterministic: identical evidence, source-quality state, configuration, and association state must produce the same qualification result.
 
 ## Freshness
 
@@ -392,7 +411,9 @@ The initial implementation must include tests for at least:
 23. a Fusion association ID cannot be used as a Track ID or World Entity ID;
 24. a fused estimate's contributing Track IDs remain distinct from its association ID;
 25. `WorldEntity.sourceTrackId`, when populated, contains an actual Track ID and never a Fusion association ID;
-26. multi-track fused provenance does not collapse into an implied single Track identity merely because an association ID exists.
+26. multi-track fused provenance does not collapse into an implied single Track identity merely because an association ID exists;
+27. accepted degraded evidence produces an explicitly unqualified estimate;
+28. rejected degraded evidence is excluded by policy without making otherwise valid remaining evidence unqualified.
 
 ## Deferred Capabilities
 
@@ -430,6 +451,6 @@ Spatial transform support should remain similarly replaceable. The initial trans
 - Confidence, uncertainty, freshness, and provenance remain distinct concepts.
 - Material disagreement is represented explicitly.
 - Evidence exclusions remain observable.
-- Qualification semantics remain explicit.
+- Qualification semantics remain explicit and policy-driven.
 - Authoritative World Model state changes only through the designated updater boundary.
 - Spatial frame conversion is explicit, deterministic, and provenance-bearing.
