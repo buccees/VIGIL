@@ -40,7 +40,7 @@ public final class WorldModelUpdater {
         }
 
         WorldEntity next = toEntity(entityId, track);
-        if (!worldModel.upsertIfNewer(next)) {
+        if (!worldModel.commitIfNewer(next)) {
             return worldModel.find(entityId).orElse(next);
         }
 
@@ -67,7 +67,7 @@ public final class WorldModelUpdater {
         }
 
         WorldEntity next = toEntity(entityId, estimate);
-        if (!worldModel.upsertIfNewer(next)) {
+        if (!worldModel.commitIfNewer(next)) {
             return worldModel.find(entityId).orElse(next);
         }
 
@@ -132,13 +132,13 @@ public final class WorldModelUpdater {
             default -> WorldEntityFreshness.CURRENT;
         };
         return new WorldEntity(entityId, track.type(), track.position(), track.velocityMetersPerSecond(),
-                track.confidence(), track.lastUpdated(), track.id(), track.detectionIds(),
+                track.confidence(), java.util.OptionalDouble.empty(), track.lastUpdated(), track.id(), track.detectionIds(),
                 track.lifecycleState(), validity, freshness);
     }
 
     private static WorldEntity toEntity(String entityId, FusedEstimate estimate) {
         return new WorldEntity(entityId, estimate.type(), estimate.position(), estimate.velocityMetersPerSecond(),
-                estimate.confidence(), estimate.latestEventTime(), null, estimate.trackIds(),
+                estimate.confidence(), estimate.positionUncertaintyMeters(), estimate.latestEventTime(), null, estimate.trackIds(),
                 estimate.detectionIds(), TrackLifecycleState.CONFIRMED, WorldEntityValidity.VALID,
                 WorldEntityFreshness.CURRENT);
     }
