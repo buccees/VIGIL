@@ -21,6 +21,25 @@ class DeterministicFusionEngineTest {
     private final DeterministicFusionEngine engine = new DeterministicFusionEngine(policy);
 
     @Test
+    void eventTimeIsDistinctFromIngestionTimeWhenComputingFreshness() {
+        FusionEvidence observedEarlierButIngestedLater = new FusionEvidence(
+                "camera-a",
+                track("track-a", 0, 0, 0, 0.8, 0),
+                "local-world",
+                T0,
+                T0.plusSeconds(5),
+                null);
+
+        DeterministicFusionEngine.FusionResult result =
+                engine.fuseDetailed(List.of(observedEarlierButIngestedLater), T0.plusSeconds(1));
+
+        FusedEstimate estimate = result.estimate().orElseThrow();
+        assertEquals(T0.plusSeconds(1), estimate.fusionTime());
+        assertEquals(T0, estimate.latestEventTime());
+        assertTrue(estimate.qualified());
+    }
+
+    @Test
     void compatibleEvidenceProducesDeterministicFusedEstimate() {
         FusionEvidence a = evidence("camera-a", "track-a", 0, 0, 0, 0.8, 2.0, 0);
         FusionEvidence b = evidence("camera-b", "track-b", 2, 0, 0, 0.6, 4.0, 100);
