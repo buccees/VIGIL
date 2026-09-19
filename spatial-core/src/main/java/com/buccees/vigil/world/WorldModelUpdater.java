@@ -132,8 +132,8 @@ public final class WorldModelUpdater {
             default -> WorldEntityFreshness.CURRENT;
         };
         return new WorldEntity(entityId, track.type(), track.position(), track.velocityMetersPerSecond(),
-                track.confidence(), java.util.OptionalDouble.empty(), track.lastUpdated(), track.id(), track.detectionIds(),
-                track.lifecycleState(), validity, freshness);
+                track.confidence(), java.util.OptionalDouble.empty(), track.lastUpdated(), track.id(), List.of(track.id()),
+                track.detectionIds(), track.lifecycleState(), validity, freshness);
     }
 
     private static WorldEntity toEntity(String entityId, FusedEstimate estimate) {
