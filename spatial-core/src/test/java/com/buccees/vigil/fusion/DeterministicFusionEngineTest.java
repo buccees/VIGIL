@@ -133,6 +133,21 @@ class DeterministicFusionEngineTest {
     }
 
     @Test
+    void materialConflictTieBreakIsIndependentOfInputOrder() {
+        FusionEvidence a = evidence("camera-a", "track-a", 0, 0, 0, 0.8, 1.0, 0);
+        FusionEvidence b = evidence("camera-b", "track-b", 10, 0, 0, 0.8, 1.0, 50);
+
+        FusedEstimate firstOrder = engine.fuse(List.of(a, b), T0.plusMillis(100)).orElseThrow();
+        FusedEstimate reversedOrder = engine.fuse(List.of(b, a), T0.plusMillis(100)).orElseThrow();
+
+        assertEquals(firstOrder.position(), reversedOrder.position());
+        assertEquals(firstOrder.trackIds(), reversedOrder.trackIds());
+        assertEquals(firstOrder.associationId(), reversedOrder.associationId());
+        assertEquals(firstOrder.qualified(), reversedOrder.qualified());
+        assertEquals(firstOrder.qualityNote(), reversedOrder.qualityNote());
+    }
+
+    @Test
     void evidenceOutsideTemporalPolicyIsExcluded() {
         FusionEvidence a = evidence("camera-a", "track-a", 0, 0, 0, 0.8, null, 0);
         FusionEvidence b = evidence("camera-b", "track-b", 1, 0, 0, 0.8, null, 1000);
