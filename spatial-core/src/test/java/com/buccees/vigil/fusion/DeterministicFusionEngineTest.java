@@ -22,6 +22,42 @@ class DeterministicFusionEngineTest {
     private final DeterministicFusionEngine engine = new DeterministicFusionEngine(policy);
 
     @Test
+    void invalidConfidenceCannotEnterTrack() {
+        assertThrows(IllegalArgumentException.class, () -> new Confidence(-0.1));
+        assertThrows(IllegalArgumentException.class, () -> new Confidence(1.1));
+        assertThrows(IllegalArgumentException.class, () -> new Confidence(Double.NaN));
+        assertThrows(IllegalArgumentException.class, () -> new Confidence(Double.POSITIVE_INFINITY));
+    }
+
+    @Test
+    void invalidEvidenceMetadataIsRejectedAtFusionBoundary() {
+        Track validTrack = track("track-a", 0, 0, 0, 0.8, 0);
+
+        assertThrows(IllegalArgumentException.class, () -> new FusionEvidence(
+                "", validTrack, "local-world", T0, T0, null));
+        assertThrows(IllegalArgumentException.class, () -> new FusionEvidence(
+                "camera-a", validTrack, "", T0, T0, null));
+        assertThrows(NullPointerException.class, () -> new FusionEvidence(
+                "camera-a", null, "local-world", T0, T0, null));
+        assertThrows(NullPointerException.class, () -> new FusionEvidence(
+                "camera-a", validTrack, "local-world", null, T0, null));
+        assertThrows(NullPointerException.class, () -> new FusionEvidence(
+                "camera-a", validTrack, "local-world", T0, null, null));
+    }
+
+    @Test
+    void invalidSpatialTransformMetadataIsRejectedAtConstruction() {
+        assertThrows(IllegalArgumentException.class, () -> new SpatialTransform(
+                "", "local-world", new LocalPosition(0, 0, 0), true, "calibration:v1"));
+        assertThrows(IllegalArgumentException.class, () -> new SpatialTransform(
+                "sensor", "", new LocalPosition(0, 0, 0), true, "calibration:v1"));
+        assertThrows(IllegalArgumentException.class, () -> new SpatialTransform(
+                "sensor", "local-world", new LocalPosition(0, 0, 0), true, ""));
+        assertThrows(NullPointerException.class, () -> new SpatialTransform(
+                "sensor", "local-world", null, true, "calibration:v1"));
+    }
+
+    @Test
     void eventTimeIsDistinctFromIngestionTimeWhenComputingFreshness() {
         FusionEvidence observedEarlierButIngestedLater = new FusionEvidence(
                 "camera-a",
