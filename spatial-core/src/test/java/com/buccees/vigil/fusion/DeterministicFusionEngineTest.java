@@ -12,6 +12,7 @@ import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -114,6 +115,25 @@ class DeterministicFusionEngineTest {
         assertEquals("camera-b:track-b", result.exclusions().get(0).evidenceId());
         assertEquals(DeterministicFusionEngine.FusionExclusionReason.INCOMPATIBLE_FRAME,
                 result.exclusions().get(0).reason());
+    }
+
+    @Test
+    void invalidUncertaintyCannotEnterFusionEvidence() {
+        assertThrows(IllegalArgumentException.class, () -> new FusionEvidence(
+                "camera-a",
+                track("track-a", 0, 0, 0, 0.8, 0),
+                "local-world",
+                T0,
+                T0,
+                -1.0));
+
+        assertThrows(IllegalArgumentException.class, () -> new FusionEvidence(
+                "camera-a",
+                track("track-a", 0, 0, 0, 0.8, 0),
+                "local-world",
+                T0,
+                T0,
+                Double.NaN));
     }
 
     @Test
