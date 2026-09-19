@@ -4,6 +4,7 @@ import com.buccees.vigil.spatial.LocalPosition;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
+import java.util.OptionalDouble;
 
 /** Current, evidence-backed belief about a physical or logical entity. */
 public record WorldEntity(
@@ -12,6 +13,7 @@ public record WorldEntity(
         LocalPosition position,
         LocalPosition velocityMetersPerSecond,
         Confidence confidence,
+        OptionalDouble positionUncertaintyMeters,
         Instant lastUpdated,
         String sourceTrackId,
         List<String> contributingTrackIds,
@@ -26,6 +28,7 @@ public record WorldEntity(
         Objects.requireNonNull(position, "position");
         Objects.requireNonNull(velocityMetersPerSecond, "velocityMetersPerSecond");
         Objects.requireNonNull(confidence, "confidence");
+        Objects.requireNonNull(positionUncertaintyMeters, "positionUncertaintyMeters");
         Objects.requireNonNull(lastUpdated, "lastUpdated");
         contributingTrackIds = List.copyOf(Objects.requireNonNull(contributingTrackIds, "contributingTrackIds"));
         if (contributingTrackIds.isEmpty()) throw new IllegalArgumentException("contributingTrackIds must not be empty");
@@ -34,11 +37,17 @@ public record WorldEntity(
         Objects.requireNonNull(lifecycleState, "lifecycleState");
         Objects.requireNonNull(validity, "validity");
         Objects.requireNonNull(freshness, "freshness");
+        if (positionUncertaintyMeters.isPresent()) {
+            double value = positionUncertaintyMeters.getAsDouble();
+            if (!Double.isFinite(value) || value < 0.0) {
+                throw new IllegalArgumentException("position uncertainty must be finite and non-negative");
+            }
+        }
     }
 
     /** Compatibility constructor for the original minimal world-model projection. */
     public WorldEntity(String id, EntityType type, LocalPosition position, Confidence confidence, Instant lastUpdated) {
-        this(id, type, position, new LocalPosition(0.0, 0.0, 0.0), confidence, lastUpdated,
+        this(id, type, position, new LocalPosition(0.0, 0.0, 0.0), confidence, OptionalDouble.empty(), lastUpdated,
                 "legacy", List.of("legacy"), List.of("legacy"), TrackLifecycleState.CONFIRMED,
                 WorldEntityValidity.VALID, WorldEntityFreshness.CURRENT);
     }
@@ -47,13 +56,13 @@ public record WorldEntity(
                        Confidence confidence, Instant lastUpdated, String sourceTrackId,
                        List<String> detectionIds, TrackLifecycleState lifecycleState,
                        WorldEntityValidity validity, WorldEntityFreshness freshness) {
-        this(id, type, position, velocityMetersPerSecond, confidence, lastUpdated, sourceTrackId,
+        this(id, type, position, velocityMetersPerSecond, confidence, OptionalDouble.empty(), lastUpdated, sourceTrackId,
                 List.of(sourceTrackId), detectionIds, lifecycleState, validity, freshness);
     }
 
     public WorldEntity withFreshness(WorldEntityFreshness newFreshness) {
-        return new WorldEntity(id, type, position, velocityMetersPerSecond, confidence, lastUpdated,
-                sourceTrackId, contributingTrackIds, detectionIds, lifecycleState, validity, newFreshness);
+        return new WorldEntity(id, type, position, velocityMetersPerSecond, confidence, positionUncertaintyMeters,
+                lastUpdated, sourceTrackId, contributingTrackIds, detectionIds, lifecycleState, validity, newFreshness);
     }
 
     private static void requireText(String value, String name) {
