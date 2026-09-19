@@ -159,7 +159,7 @@ public final class DeterministicFusionEngine {
             else weightedUncertainty += evidenceItem.positionUncertaintyMeters() * fraction;
         }
 
-        String associationId = tracks.stream().sorted().findFirst().orElseThrow();
+        String associationId = "fusion:" + tracks.stream().sorted().collect(java.util.stream.Collectors.joining("+"));
         String qualityNote = conflict
                 ? "Material disagreement detected; estimate uses the strongest deterministic evidence and is not cross-source qualified."
                 : includesDegradedEvidence
