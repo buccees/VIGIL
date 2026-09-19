@@ -51,6 +51,24 @@ class WorldModelUpdaterFusionTest {
     }
 
     @Test
+    void laterTrackUpdateDoesNotEraseFusedProvenance() {
+        WorldModel worldModel = new WorldModel();
+        WorldModelUpdater updater = new WorldModelUpdater(worldModel);
+
+        updater.update(estimate("fusion-track-a-track-b", List.of("track-a", "track-b"), T0, 4.0));
+        Track laterTrack = new Track("track-a", EntityType.VEHICLE,
+                new LocalPosition(5, 0, 0), new LocalPosition(1, 0, 0),
+                new Confidence(0.95), T0.plusSeconds(1), List.of("track-a-later-detection"),
+                TrackLifecycleState.CONFIRMED);
+
+        WorldEntity entity = updater.update(laterTrack);
+
+        assertEquals(List.of("track-a", "track-b"), entity.contributingTrackIds());
+        assertEquals(List.of("track-a-detection", "track-b-detection", "track-a-later-detection"), entity.detectionIds());
+        assertNull(entity.sourceTrackId());
+    }
+
+    @Test
     void olderFusedEstimateCannotOverwriteCurrentState() {
         WorldModel worldModel = new WorldModel();
         WorldModelUpdater updater = new WorldModelUpdater(worldModel);
