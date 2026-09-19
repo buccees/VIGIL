@@ -62,6 +62,8 @@ public final class DeterministicFusionEngine {
         SpatialTransform canonical = canonicalTransformFor(first.frameId());
         String fusionFrame = canonical == null ? first.frameId() : canonical.destinationFrameId();
 
+        LocalPosition firstPosition = canonical == null ? first.position() : canonical.apply(first.position());
+
         List<FusionEvidence> compatible = new ArrayList<>();
         List<ResolvedEvidence> resolved = new ArrayList<>();
         for (FusionEvidence candidate : temporallyEligible) {
@@ -86,7 +88,7 @@ public final class DeterministicFusionEngine {
                 exclusions.add(new FusionExclusion(candidate.evidenceId(), FusionExclusionReason.TEMPORAL_SKEW));
                 continue;
             }
-            if (first.position().distanceTo(position) > policy.conflictDistanceMeters()) {
+            if (firstPosition.distanceTo(position) > policy.conflictDistanceMeters()) {
                 exclusions.add(new FusionExclusion(candidate.evidenceId(), FusionExclusionReason.OUTSIDE_CONFLICT_DISTANCE));
                 continue;
             }
