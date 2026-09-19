@@ -14,6 +14,10 @@ public final class VoiceInputGateway {
         if (request.microphonePermission() == MicrophonePermissionState.DENIED) {
             return new VoiceInputResult(VoiceInputStatus.MICROPHONE_NOT_PERMITTED, null);
         }
-        return new VoiceInputResult(VoiceInputStatus.RECOGNIZED, adapter.recognize(request));
+        try {
+            return new VoiceInputResult(VoiceInputStatus.RECOGNIZED, adapter.recognize(request));
+        } catch (RuntimeException failure) {
+            return new VoiceInputResult(VoiceInputStatus.RECOGNITION_FAILED, null);
+        }
     }
 }
