@@ -30,6 +30,21 @@ class WorldModelTest {
     }
 
     @Test
+    void snapshotIsDeterministicallyOrderedByEntityId() {
+        WorldModel model = new WorldModel();
+        WorldModelUpdater updater = new WorldModelUpdater(model);
+        Instant now = Instant.parse("2026-09-02T00:00:00Z");
+
+        updater.update(new Track("track-b", EntityType.VEHICLE, new LocalPosition(2, 0, 0),
+                new LocalPosition(0, 0, 0), new Confidence(0.8), now, java.util.List.of("d2"), TrackLifecycleState.CONFIRMED));
+        updater.update(new Track("track-a", EntityType.VEHICLE, new LocalPosition(1, 0, 0),
+                new LocalPosition(0, 0, 0), new Confidence(0.8), now, java.util.List.of("d1"), TrackLifecycleState.CONFIRMED));
+
+        assertEquals(java.util.List.of("entity-1", "entity-2"),
+                model.snapshot().stream().map(WorldEntity::id).toList());
+    }
+
+    @Test
     void missingEntityIsExplicitlyAbsent() {
         WorldModel model = new WorldModel();
         assertTrue(model.find("missing").isEmpty());
