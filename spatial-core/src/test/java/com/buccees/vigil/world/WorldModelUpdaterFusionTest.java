@@ -34,6 +34,23 @@ class WorldModelUpdaterFusionTest {
     }
 
     @Test
+    void fusedEstimatePreservesUncertaintyAndTemporalProvenance() {
+        WorldModel worldModel = new WorldModel();
+        WorldModelUpdater updater = new WorldModelUpdater(worldModel);
+
+        Instant latestEvent = T0.plusSeconds(7);
+        FusedEstimate estimate = estimate("fusion-track-a-track-b", List.of("track-a", "track-b"), latestEvent, 4.0);
+
+        WorldEntity entity = updater.update(estimate);
+
+        assertEquals(OptionalDouble.of(1.5), entity.positionUncertaintyMeters());
+        assertEquals(latestEvent, entity.lastUpdated());
+        assertEquals(List.of("track-a", "track-b"), entity.contributingTrackIds());
+        assertEquals(List.of("track-a-detection", "track-b-detection"), entity.detectionIds());
+        assertNull(entity.sourceTrackId());
+    }
+
+    @Test
     void fusedEstimateCrossingBoundaryEmitsAssociationSeparatelyFromTrackProvenance() {
         WorldModel worldModel = new WorldModel();
         List<WorldModelEvent> events = new ArrayList<>();
