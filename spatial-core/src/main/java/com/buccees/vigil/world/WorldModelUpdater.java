@@ -165,12 +165,13 @@ public final class WorldModelUpdater {
     }
 
     private static List<String> mergeProvenance(List<String> existing, String value) {
-        if (existing.contains(value)) return existing;
-        return java.util.stream.Stream.concat(existing.stream(), java.util.stream.Stream.of(value)).toList();
+        return java.util.stream.Stream.concat(existing.stream(), java.util.stream.Stream.of(value))
+                .distinct().sorted().toList();
     }
 
     private static List<String> mergeProvenance(List<String> existing, List<String> values) {
-        return java.util.stream.Stream.concat(existing.stream(), values.stream()).distinct().toList();
+        return java.util.stream.Stream.concat(existing.stream(), values.stream())
+                .distinct().sorted().toList();
     }
 
     private static WorldEntity toEntity(String entityId, FusedEstimate estimate) {
