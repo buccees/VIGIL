@@ -2,18 +2,16 @@ name: Spatial Core CI
 
 on:
   workflow_dispatch:
-# Automatic push/pull-request triggers are intentionally disabled while the CI
-# workflow is being stabilized. Manual runs are available from Actions.
-#  push:
-#    branches:
-#      - main
-#      - "feature/**"
-#    paths:
-#      - "spatial-core/**"
-#      - "build.gradle.kts"
-#      - "settings.gradle.kts"
-#      - ".github/workflows/spatial-core.yml"
-#  pull_request:
+  push:
+    branches:
+      - main
+      - "feature/**"
+    paths:
+      - "spatial-core/**"
+      - "build.gradle.kts"
+      - "settings.gradle.kts"
+      - ".github/workflows/spatial-core.yml"
+  pull_request:
 #    paths:
 #      - "spatial-core/**"
 #      - "build.gradle.kts"
