@@ -75,6 +75,20 @@ class HumanConfirmationBoundaryTest {
                 () -> new HumanConfirmationService().confirm(required, mismatched, NOW.plusSeconds(1)));
     }
 
+    @Test
+    void authorizedOperationStillRequiresExplicitHumanConfirmation() {
+        HumanInteractionRequest request = new HumanInteractionRequest(
+                "r-10", "s-10", AuthenticationState.AUTHENTICATED,
+                new AuthorizationContext(Set.of("start_analysis")), InputModality.TEXT,
+                "start analysis", "start_analysis", "north-sector", NOW, "user-text");
+        InteractionSession session = InteractionSession.create("s-10", NOW).activate(NOW.plusSeconds(1));
+
+        HumanInteractionResponse response = new HumanInteractionService()
+                .evaluate(request, session, NOW.plusSeconds(2));
+
+        assertEquals(HumanInteractionResponse.ResponseStatus.CONFIRMATION_REQUIRED, response.status());
+    }
+
     private HumanInteractionRequest request() {
         return new HumanInteractionRequest(
                 "r-1", "s-1", AuthenticationState.AUTHENTICATED,
