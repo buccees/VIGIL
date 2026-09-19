@@ -42,7 +42,14 @@ public final class WorldModel {
         });
     }
 
+    /**
+     * Returns a stable snapshot ordered by World Entity ID. The backing store is concurrent
+     * and therefore does not provide iteration order; exposing that order would make replay,
+     * tests, and downstream deterministic consumers depend on storage behavior.
+     */
     public java.util.Collection<WorldEntity> snapshot() {
-        return java.util.List.copyOf(entities.values());
+        return entities.values().stream()
+                .sorted(java.util.Comparator.comparing(WorldEntity::id))
+                .toList();
     }
 }
