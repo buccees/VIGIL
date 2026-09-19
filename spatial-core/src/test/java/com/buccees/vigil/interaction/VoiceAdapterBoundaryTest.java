@@ -8,6 +8,20 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.junit.jupiter.api.Assertions.*;
 
 class VoiceAdapterBoundaryTest {
+    @Test
+    void speechRecognitionFailureIsContainedAtVoiceBoundary() {
+        VoiceInputAdapter adapter = request -> {
+            throw new IllegalStateException("speech provider unavailable");
+        };
+
+        VoiceInputRequest request = new VoiceInputRequest(
+                "voice-4", "session-1", MicrophonePermissionState.GRANTED, NOW);
+        VoiceInputResult result = new VoiceInputGateway(adapter).recognize(request);
+
+        assertEquals(VoiceInputStatus.RECOGNITION_FAILED, result.status());
+        assertTrue(result.recognizedSpeech().isEmpty());
+    }
+
     private static final Instant NOW = Instant.parse("2026-09-18T12:00:00Z");
 
     @Test
