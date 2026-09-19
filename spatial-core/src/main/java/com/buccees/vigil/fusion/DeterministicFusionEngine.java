@@ -20,46 +20,35 @@ public final class DeterministicFusionEngine {
     private final FusionPolicy policy;
     private final List<SpatialTransform> transforms;
 
-    public DeterministicFusionEngine(FusionPolicy policy) {
-        this(policy, List.of());
-    }
+    public DeterministicFusionEngine(FusionPolicy policy) { this(policy, List.of()); }
 
     public DeterministicFusionEngine(FusionPolicy policy, List<SpatialTransform> transforms) {
         this.policy = Objects.requireNonNull(policy, "policy");
         this.transforms = List.copyOf(Objects.requireNonNull(transforms, "transforms"));
     }
 
-    /** Attempts to fuse compatible evidence without mutating authoritative world state. */
     public Optional<FusedEstimate> fuse(List<FusionEvidence> evidence, Instant fusionTime) {
         return fuseDetailed(evidence, fusionTime).estimate();
     }
 
-    /**
-     * Performs deterministic fusion and exposes evidence exclusions alongside the estimate.
-     * Exclusions are diagnostic output only and never mutate authoritative world state.
-     */
     public FusionResult fuseDetailed(List<FusionEvidence> evidence, Instant fusionTime) {
         Objects.requireNonNull(evidence, "evidence");
         Objects.requireNonNull(fusionTime, "fusionTime");
         if (evidence.isEmpty()) return new FusionResult(Optional.empty(), List.of());
 
-        List<FusionEvidence> valid = evidence.stream()
-                .filter(Objects::nonNull)
-                .sorted(Comparator.comparing(FusionEvidence::evidenceId))
-                .toList();
+        List<FusionEvidence> valid = evidence.stream().filter(Objects::nonNull)
+                .sorted(Comparator.comparing(FusionEvidence::evidenceId)).toList();
         if (valid.isEmpty()) return new FusionResult(Optional.empty(), List.of());
 
         List<FusionExclusion> exclusions = new ArrayList<>();
         List<FusionEvidence> temporallyEligible = new ArrayList<>();
         for (FusionEvidence candidate : valid) {
-            TrackLifecycleState lifecycleState = candidate.track().lifecycleState();
-            if (lifecycleState == TrackLifecycleState.STALE
-                    || lifecycleState == TrackLifecycleState.TERMINATED
-                    || (lifecycleState == TrackLifecycleState.DEGRADED && !policy.allowDegradedEvidence())) {
+            TrackLifecycleState state = candidate.track().lifecycleState();
+            if (state == TrackLifecycleState.STALE || state == TrackLifecycleState.TERMINATED
+                    || (state == TrackLifecycleState.DEGRADED && !policy.allowDegradedEvidence())) {
                 exclusions.add(new FusionExclusion(candidate.evidenceId(), FusionExclusionReason.INVALID_SOURCE_STATE));
                 continue;
             }
-
             Duration age = candidate.ageAt(fusionTime);
             if (age.isNegative() || age.compareTo(policy.maxEvidenceAge()) > 0) {
                 exclusions.add(new FusionExclusion(candidate.evidenceId(), FusionExclusionReason.STALE_OR_FUTURE_DATED));
@@ -70,6 +59,11 @@ public final class DeterministicFusionEngine {
         if (temporallyEligible.isEmpty()) return new FusionResult(Optional.empty(), List.copyOf(exclusions));
 
         FusionEvidence first = temporallyEligible.get(0);
+        // A transform may establish the canonical fusion frame when all evidence shares a
+        // source frame. Pick the destination frame and provenance deterministically.
+        SpatialTransform canonical = canonicalTransformFor(first.frameId());
+        String fusionFrame = canonical == null ? first.frameId() : canonical.destinationFrameId();
+
         List<FusionEvidence> compatible = new ArrayList<>();
         List<ResolvedEvidence> resolved = new ArrayList<>();
         for (FusionEvidence candidate : temporallyEligible) {
@@ -77,8 +71,10 @@ public final class DeterministicFusionEngine {
                 exclusions.add(new FusionExclusion(candidate.evidenceId(), FusionExclusionReason.INCOMPATIBLE_TYPE));
                 continue;
             }
-            SpatialTransform transform = transformFor(candidate.frameId(), first.frameId());
-            if (!candidate.frameId().equals(first.frameId()) && transform == null) {
+            SpatialTransform transform = candidate.frameId().equals(fusionFrame)
+                    ? null
+                    : transformFor(candidate.frameId(), fusionFrame);
+            if (!candidate.frameId().equals(fusionFrame) && transform == null) {
                 exclusions.add(new FusionExclusion(candidate.evidenceId(), FusionExclusionReason.INCOMPATIBLE_FRAME));
                 continue;
             }
@@ -87,8 +83,7 @@ public final class DeterministicFusionEngine {
                 continue;
             }
             LocalPosition position = transform == null ? candidate.position() : transform.apply(candidate.position());
-            LocalPosition velocity = transform == null
-                    ? candidate.track().velocityMetersPerSecond()
+            LocalPosition velocity = transform == null ? candidate.track().velocityMetersPerSecond()
                     : transform.applyVelocity(candidate.track().velocityMetersPerSecond());
             if (temporalSkew(first.eventTime(), candidate.eventTime()).compareTo(policy.maxEventTimeSkew()) > 0) {
                 exclusions.add(new FusionExclusion(candidate.evidenceId(), FusionExclusionReason.TEMPORAL_SKEW));
@@ -104,120 +99,74 @@ public final class DeterministicFusionEngine {
         if (compatible.isEmpty()) return new FusionResult(Optional.empty(), List.copyOf(exclusions));
 
         boolean conflict = false;
-        for (int i = 0; i < resolved.size(); i++) {
-            for (int j = i + 1; j < resolved.size(); j++) {
+        for (int i = 0; i < resolved.size(); i++)
+            for (int j = i + 1; j < resolved.size(); j++)
                 if (resolved.get(i).position().distanceTo(resolved.get(j).position())
-                        > policy.maxAssociationDistanceMeters()) {
-                    conflict = true;
-                }
-            }
-        }
+                        > policy.maxAssociationDistanceMeters()) conflict = true;
 
         if (conflict) {
             ResolvedEvidence strongest = resolved.stream()
                     .max(Comparator.comparingDouble((ResolvedEvidence e) -> e.evidence().confidence().value())
-                            .thenComparing(e -> e.evidence().evidenceId(), Comparator.reverseOrder()))
-                    .orElseThrow();
-            for (ResolvedEvidence item : resolved) {
-                if (!item.evidence().evidenceId().equals(strongest.evidence().evidenceId())) {
+                            .thenComparing(e -> e.evidence().evidenceId(), Comparator.reverseOrder())).orElseThrow();
+            for (ResolvedEvidence item : resolved)
+                if (!item.evidence().evidenceId().equals(strongest.evidence().evidenceId()))
                     exclusions.add(new FusionExclusion(item.evidence().evidenceId(), FusionExclusionReason.MATERIAL_DISAGREEMENT));
-                }
-            }
             compatible = List.of(strongest.evidence());
             resolved = List.of(strongest);
         }
 
-        double totalWeight = resolved.stream()
-                .mapToDouble(e -> Math.max(e.evidence().confidence().value(), 1.0e-9)).sum();
-        double x = 0, y = 0, z = 0;
-        double vx = 0, vy = 0, vz = 0;
-        double weightedConfidence = 0;
-        double weightedUncertainty = 0;
-        boolean allHaveUncertainty = true;
-        boolean includesDegradedEvidence = false;
-        Set<String> sources = new LinkedHashSet<>();
-        Set<String> tracks = new LinkedHashSet<>();
-        Set<String> detections = new LinkedHashSet<>();
-        Set<String> transformProvenance = new LinkedHashSet<>();
+        double totalWeight = resolved.stream().mapToDouble(e -> Math.max(e.evidence().confidence().value(), 1.0e-9)).sum();
+        double x = 0, y = 0, z = 0, vx = 0, vy = 0, vz = 0, weightedConfidence = 0, weightedUncertainty = 0;
+        boolean allHaveUncertainty = true, includesDegradedEvidence = false;
+        Set<String> sources = new LinkedHashSet<>(), tracks = new LinkedHashSet<>(), detections = new LinkedHashSet<>(), transformProvenance = new LinkedHashSet<>();
         Instant latestEvent = resolved.stream().map(e -> e.evidence().eventTime()).max(Instant::compareTo).orElseThrow();
 
         for (ResolvedEvidence item : resolved) {
-            FusionEvidence evidenceItem = item.evidence();
-            double weight = Math.max(evidenceItem.confidence().value(), 1.0e-9);
-            double fraction = weight / totalWeight;
-            x += item.position().xM() * fraction;
-            y += item.position().yM() * fraction;
-            z += item.position().zM() * fraction;
-            vx += item.velocity().xM() * fraction;
-            vy += item.velocity().yM() * fraction;
-            vz += item.velocity().zM() * fraction;
-            weightedConfidence += evidenceItem.confidence().value() * fraction;
-            sources.add(evidenceItem.sourceId());
-            tracks.add(evidenceItem.track().id());
-            detections.addAll(evidenceItem.track().detectionIds());
+            FusionEvidence e = item.evidence();
+            double weight = Math.max(e.confidence().value(), 1.0e-9), fraction = weight / totalWeight;
+            x += item.position().xM() * fraction; y += item.position().yM() * fraction; z += item.position().zM() * fraction;
+            vx += item.velocity().xM() * fraction; vy += item.velocity().yM() * fraction; vz += item.velocity().zM() * fraction;
+            weightedConfidence += e.confidence().value() * fraction;
+            sources.add(e.sourceId()); tracks.add(e.track().id()); detections.addAll(e.track().detectionIds());
             if (item.transform() != null) transformProvenance.add(item.transform().provenance());
-            if (evidenceItem.track().lifecycleState() == TrackLifecycleState.DEGRADED) includesDegradedEvidence = true;
-            if (evidenceItem.positionUncertaintyMeters() == null) allHaveUncertainty = false;
-            else weightedUncertainty += evidenceItem.positionUncertaintyMeters() * fraction;
+            if (e.track().lifecycleState() == TrackLifecycleState.DEGRADED) includesDegradedEvidence = true;
+            if (e.positionUncertaintyMeters() == null) allHaveUncertainty = false;
+            else weightedUncertainty += e.positionUncertaintyMeters() * fraction;
         }
 
         String associationId = "fusion:" + tracks.stream().sorted().collect(java.util.stream.Collectors.joining("+"));
-        String qualityNote = conflict
-                ? "Material disagreement detected; estimate uses the strongest deterministic evidence and is not cross-source qualified."
-                : includesDegradedEvidence
-                    ? "Degraded evidence contributed under the configured deterministic fusion policy; result is not qualified as fully healthy evidence."
-                    : compatible.size() == 1
-                        ? "Single compatible evidence item; no cross-source fusion performed."
-                        : "Compatible evidence fused using confidence-weighted deterministic averaging.";
+        String qualityNote = conflict ? "Material disagreement detected; estimate uses the strongest deterministic evidence and is not cross-source qualified."
+                : includesDegradedEvidence ? "Degraded evidence contributed under the configured deterministic fusion policy; result is not qualified as fully healthy evidence."
+                : compatible.size() == 1 ? "Single compatible evidence item; no cross-source fusion performed."
+                : "Compatible evidence fused using confidence-weighted deterministic averaging.";
 
-        FusedEstimate estimate = new FusedEstimate(
-                associationId, first.type(), new LocalPosition(x, y, z), new LocalPosition(vx, vy, vz),
-                new Confidence(weightedConfidence),
+        FusedEstimate estimate = new FusedEstimate(associationId, first.type(), new LocalPosition(x, y, z),
+                new LocalPosition(vx, vy, vz), new Confidence(weightedConfidence),
                 allHaveUncertainty ? OptionalDouble.of(weightedUncertainty) : OptionalDouble.empty(),
                 fusionTime, latestEvent, List.copyOf(sources), List.copyOf(tracks), List.copyOf(detections),
                 List.copyOf(transformProvenance), !conflict && !includesDegradedEvidence, qualityNote);
         return new FusionResult(Optional.of(estimate), List.copyOf(exclusions));
     }
 
-    private SpatialTransform transformFor(String sourceFrame, String destinationFrame) {
+    private SpatialTransform canonicalTransformFor(String sourceFrame) {
         return transforms.stream()
-                .filter(transform -> transform.connects(sourceFrame, destinationFrame))
+                .filter(t -> t.sourceFrameId().equals(sourceFrame) && t.valid())
                 .sorted(Comparator.comparing(SpatialTransform::provenance))
-                .findFirst()
-                .orElse(null);
+                .findFirst().orElse(null);
     }
 
-    private record ResolvedEvidence(FusionEvidence evidence, LocalPosition position,
-                                    LocalPosition velocity, SpatialTransform transform) {}
+    private SpatialTransform transformFor(String sourceFrame, String destinationFrame) {
+        return transforms.stream().filter(t -> t.connects(sourceFrame, destinationFrame) && t.valid())
+                .sorted(Comparator.comparing(SpatialTransform::provenance)).findFirst().orElse(null);
+    }
 
-    /** Structured diagnostic result for a fusion attempt. */
+    private record ResolvedEvidence(FusionEvidence evidence, LocalPosition position, LocalPosition velocity, SpatialTransform transform) {}
     public record FusionResult(Optional<FusedEstimate> estimate, List<FusionExclusion> exclusions) {
-        public FusionResult {
-            Objects.requireNonNull(estimate, "estimate");
-            exclusions = List.copyOf(Objects.requireNonNull(exclusions, "exclusions"));
-        }
+        public FusionResult { Objects.requireNonNull(estimate, "estimate"); exclusions = List.copyOf(Objects.requireNonNull(exclusions, "exclusions")); }
     }
-
-    /** Evidence excluded from the selected fusion set and the deterministic reason. */
     public record FusionExclusion(String evidenceId, FusionExclusionReason reason) {
-        public FusionExclusion {
-            Objects.requireNonNull(evidenceId, "evidenceId");
-            Objects.requireNonNull(reason, "reason");
-        }
+        public FusionExclusion { Objects.requireNonNull(evidenceId, "evidenceId"); Objects.requireNonNull(reason, "reason"); }
     }
-
-    public enum FusionExclusionReason {
-        INCOMPATIBLE_FRAME,
-        INVALID_TRANSFORM,
-        INCOMPATIBLE_TYPE,
-        TEMPORAL_SKEW,
-        STALE_OR_FUTURE_DATED,
-        INVALID_SOURCE_STATE,
-        OUTSIDE_CONFLICT_DISTANCE,
-        MATERIAL_DISAGREEMENT
-    }
-
-    private static Duration temporalSkew(Instant a, Instant b) {
-        return Duration.between(a, b).abs();
-    }
+    public enum FusionExclusionReason { INCOMPATIBLE_FRAME, INVALID_TRANSFORM, INCOMPATIBLE_TYPE, TEMPORAL_SKEW, STALE_OR_FUTURE_DATED, INVALID_SOURCE_STATE, OUTSIDE_CONFLICT_DISTANCE, MATERIAL_DISAGREEMENT }
+    private static Duration temporalSkew(Instant a, Instant b) { return Duration.between(a, b).abs(); }
 }
