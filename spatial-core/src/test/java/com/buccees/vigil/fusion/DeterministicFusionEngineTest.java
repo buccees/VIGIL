@@ -133,6 +133,26 @@ class DeterministicFusionEngineTest {
     }
 
     @Test
+    void detailedFusionResultIsDeterministicIncludingExclusionOrdering() {
+        FusionEvidence valid = evidence("camera-a", "track-a", 0, 0, 0, 0.8, null, 0);
+        FusionEvidence incompatibleFrame = new FusionEvidence(
+                "camera-c",
+                track("track-c", 1, 0, 0, 0.7, 50),
+                "other-frame",
+                T0.plusMillis(50),
+                T0.plusMillis(60),
+                null);
+        FusionEvidence stale = evidence("camera-b", "track-b", 2, 0, 0, 0.9, null, 3000);
+
+        DeterministicFusionEngine.FusionResult firstOrder =
+                engine.fuseDetailed(List.of(stale, incompatibleFrame, valid), T0.plusSeconds(3));
+        DeterministicFusionEngine.FusionResult reversedOrder =
+                engine.fuseDetailed(List.of(valid, incompatibleFrame, stale), T0.plusSeconds(3));
+
+        assertEquals(firstOrder, reversedOrder);
+    }
+
+    @Test
     void materialConflictTieBreakIsIndependentOfInputOrder() {
         FusionEvidence a = evidence("camera-a", "track-a", 0, 0, 0, 0.8, 1.0, 0);
         FusionEvidence b = evidence("camera-b", "track-b", 10, 0, 0, 0.8, 1.0, 50);
