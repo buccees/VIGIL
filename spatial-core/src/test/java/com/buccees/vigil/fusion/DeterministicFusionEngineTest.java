@@ -76,6 +76,29 @@ class DeterministicFusionEngineTest {
     }
 
     @Test
+    void transformedCanonicalAnchorIsUsedForConflictChecks() {
+        FusionEvidence transformedAnchor = new FusionEvidence(
+                "camera-a",
+                track("track-a", 0, 0, 0, 0.8, 0),
+                "sensor-a",
+                T0,
+                T0.plusMillis(10),
+                null);
+        FusionEvidence localEvidence = evidence("camera-b", "track-b", 100, 0, 0, 0.8, null, 50);
+        SpatialTransform transform = new SpatialTransform("sensor-a", "local-world",
+                new LocalPosition(100, 0, 0), true, "calibration:sensor-a-to-local-world:v1");
+
+        DeterministicFusionEngine transformedEngine = new DeterministicFusionEngine(policy, List.of(transform));
+        FusedEstimate result = transformedEngine.fuse(List.of(transformedAnchor, localEvidence), T0.plusMillis(100))
+                .orElseThrow();
+
+        assertEquals(100.0, result.position().xM(), 1.0e-9);
+        assertEquals(List.of("camera-a", "camera-b"), result.sourceIds());
+        assertEquals(List.of("calibration:sensor-a-to-local-world:v1"), result.transformProvenance());
+        assertTrue(result.qualified());
+    }
+
+    @Test
     void invalidSpatialTransformIsExplicitlyExcluded() {
         FusionEvidence a = evidence("camera-a", "track-a", 0, 0, 0, 0.8, null, 0);
         FusionEvidence b = new FusionEvidence("camera-b", track("track-b", -1, 0, 0, 0.8, 50),
