@@ -56,6 +56,41 @@ class WorldModelUpdaterTest {
     }
 
     @Test
+    void equalTimestampTrackUpdatesResolveDeterministically() {
+        Track first = new Track("track-1", EntityType.VEHICLE, new LocalPosition(1, 0, 0),
+                new LocalPosition(0, 0, 0), new Confidence(0.8), T0, List.of("d1"), TrackLifecycleState.CONFIRMED);
+        Track second = new Track("track-1", EntityType.VEHICLE, new LocalPosition(9, 0, 0),
+                new LocalPosition(0, 0, 0), new Confidence(0.8), T0, List.of("d2"), TrackLifecycleState.CONFIRMED);
+
+        WorldModel firstModel = new WorldModel();
+        WorldModelUpdater firstUpdater = new WorldModelUpdater(firstModel);
+        firstUpdater.update(first);
+        WorldEntity firstResult = firstUpdater.update(second);
+
+        WorldModel secondModel = new WorldModel();
+        WorldModelUpdater secondUpdater = new WorldModelUpdater(secondModel);
+        secondUpdater.update(second);
+        WorldEntity secondResult = secondUpdater.update(first);
+
+        assertEquals(firstResult, secondResult);
+        assertEquals(firstResult, firstModel.find("entity-1").orElseThrow());
+        assertEquals(secondResult, secondModel.find("entity-1").orElseThrow());
+    }
+
+    @Test
+    void equalTimestampIdenticalTrackUpdateIsNotAStateChange() {
+        Track track = new Track("track-1", EntityType.VEHICLE, new LocalPosition(1, 0, 0),
+                new LocalPosition(0, 0, 0), new Confidence(0.8), T0, List.of("d1"), TrackLifecycleState.CONFIRMED);
+        List<WorldModelEvent> events = new ArrayList<>();
+        WorldModelUpdater updater = new WorldModelUpdater(new WorldModel(), events::add);
+
+        updater.update(track);
+        updater.update(track);
+
+        assertEquals(1, events.size());
+    }
+
+    @Test
     void lifecycleIsProjectedWithoutDeletingIdentity() {
         WorldModel model = new WorldModel();
         List<WorldModelEvent> events = new ArrayList<>();
