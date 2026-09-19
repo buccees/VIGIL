@@ -39,7 +39,7 @@ public final class WorldModelUpdater {
             return current;
         }
 
-        WorldEntity next = toEntity(entityId, track);
+        WorldEntity next = toEntity(entityId, track, current);
         if (!worldModel.commitIfNewer(next)) {
             return worldModel.find(entityId).orElse(next);
         }
@@ -121,7 +121,7 @@ public final class WorldModelUpdater {
                 next.detectionIds()));
     }
 
-    private static WorldEntity toEntity(String entityId, Track track) {
+    private static WorldEntity toEntity(String entityId, Track track, WorldEntity current) {
         WorldEntityValidity validity = switch (track.lifecycleState()) {
             case TENTATIVE, CONFIRMED -> WorldEntityValidity.VALID;
             case DEGRADED -> WorldEntityValidity.DEGRADED;
@@ -131,9 +131,25 @@ public final class WorldModelUpdater {
             case STALE, TERMINATED -> WorldEntityFreshness.STALE;
             default -> WorldEntityFreshness.CURRENT;
         };
+        List<String> contributingTrackIds = current == null
+                ? List.of(track.id())
+                : mergeProvenance(current.contributingTrackIds(), track.id());
+        List<String> detectionIds = current == null
+                ? track.detectionIds()
+                : mergeProvenance(current.detectionIds(), track.detectionIds());
+        String sourceTrackId = current == null ? track.id() : current.sourceTrackId();
         return new WorldEntity(entityId, track.type(), track.position(), track.velocityMetersPerSecond(),
-                track.confidence(), java.util.OptionalDouble.empty(), track.lastUpdated(), track.id(), List.of(track.id()),
-                track.detectionIds(), track.lifecycleState(), validity, freshness);
+                track.confidence(), java.util.OptionalDouble.empty(), track.lastUpdated(), sourceTrackId,
+                contributingTrackIds, detectionIds, track.lifecycleState(), validity, freshness);
+    }
+
+    private static List<String> mergeProvenance(List<String> existing, String value) {
+        if (existing.contains(value)) return existing;
+        return java.util.stream.Stream.concat(existing.stream(), java.util.stream.Stream.of(value)).toList();
+    }
+
+    private static List<String> mergeProvenance(List<String> existing, List<String> values) {
+        return java.util.stream.Stream.concat(existing.stream(), values.stream()).distinct().toList();
     }
 
     private static WorldEntity toEntity(String entityId, FusedEstimate estimate) {
