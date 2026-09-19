@@ -59,8 +59,6 @@ public final class DeterministicFusionEngine {
         if (temporallyEligible.isEmpty()) return new FusionResult(Optional.empty(), List.copyOf(exclusions));
 
         FusionEvidence first = temporallyEligible.get(0);
-        // A transform may establish the canonical fusion frame when all evidence shares a
-        // source frame. Pick the destination frame and provenance deterministically.
         SpatialTransform canonical = canonicalTransformFor(first.frameId());
         String fusionFrame = canonical == null ? first.frameId() : canonical.destinationFrameId();
 
@@ -75,11 +73,10 @@ public final class DeterministicFusionEngine {
                     ? null
                     : transformFor(candidate.frameId(), fusionFrame);
             if (!candidate.frameId().equals(fusionFrame) && transform == null) {
-                exclusions.add(new FusionExclusion(candidate.evidenceId(), FusionExclusionReason.INCOMPATIBLE_FRAME));
-                continue;
-            }
-            if (transform != null && !transform.valid()) {
-                exclusions.add(new FusionExclusion(candidate.evidenceId(), FusionExclusionReason.INVALID_TRANSFORM));
+                SpatialTransform invalidTransform = invalidTransformFor(candidate.frameId(), fusionFrame);
+                exclusions.add(new FusionExclusion(candidate.evidenceId(),
+                        invalidTransform == null ? FusionExclusionReason.INCOMPATIBLE_FRAME
+                                : FusionExclusionReason.INVALID_TRANSFORM));
                 continue;
             }
             LocalPosition position = transform == null ? candidate.position() : transform.apply(candidate.position());
@@ -157,6 +154,11 @@ public final class DeterministicFusionEngine {
 
     private SpatialTransform transformFor(String sourceFrame, String destinationFrame) {
         return transforms.stream().filter(t -> t.connects(sourceFrame, destinationFrame) && t.valid())
+                .sorted(Comparator.comparing(SpatialTransform::provenance)).findFirst().orElse(null);
+    }
+
+    private SpatialTransform invalidTransformFor(String sourceFrame, String destinationFrame) {
+        return transforms.stream().filter(t -> t.connects(sourceFrame, destinationFrame) && !t.valid())
                 .sorted(Comparator.comparing(SpatialTransform::provenance)).findFirst().orElse(null);
     }
 
