@@ -77,6 +77,29 @@ class DeterministicFusionEngineTest {
     }
 
     @Test
+    void multipleValidTransformsUseDeterministicProvenanceOrdering() {
+        FusionEvidence source = new FusionEvidence(
+                "camera-b",
+                track("track-b", -1, 0, 0, 0.8, 50),
+                "sensor-b",
+                T0.plusMillis(50),
+                T0.plusMillis(60),
+                null);
+        SpatialTransform first = new SpatialTransform("sensor-b", "local-world",
+                new LocalPosition(1, 0, 0), true, "calibration:z-version");
+        SpatialTransform second = new SpatialTransform("sensor-b", "local-world",
+                new LocalPosition(2, 0, 0), true, "calibration:a-version");
+
+        DeterministicFusionEngine transformedEngine =
+                new DeterministicFusionEngine(policy, List.of(first, second));
+
+        FusedEstimate result = transformedEngine.fuse(List.of(source), T0.plusMillis(100)).orElseThrow();
+
+        assertEquals(1.0, result.position().xM(), 1.0e-9);
+        assertEquals(List.of("calibration:a-version"), result.transformProvenance());
+    }
+
+    @Test
     void invalidSpatialTransformIsExplicitlyExcluded() {
         FusionEvidence a = evidence("camera-a", "track-a", 0, 0, 0, 0.8, null, 0);
         FusionEvidence b = new FusionEvidence("camera-b", track("track-b", -1, 0, 0, 0.8, 50),
