@@ -32,7 +32,10 @@ class HumanConfirmationBoundaryTest {
                 request.operation(), request.scope(), ConfirmationStatus.REQUIRED, NOW);
         assertFalse(required.confirmed());
 
-        HumanConfirmation confirmed = service.confirm(request, NOW.plusSeconds(1));
+        HumanConfirmation required = new HumanConfirmation(
+                request.confirmationId(), request.requestId(), request.sessionId(),
+                request.operation(), request.scope(), ConfirmationStatus.REQUIRED, NOW);
+        HumanConfirmation confirmed = service.confirm(required, request, NOW.plusSeconds(1));
         assertEquals(ConfirmationStatus.CONFIRMED, confirmed.status());
         assertTrue(confirmed.confirmed());
     }
@@ -42,7 +45,10 @@ class HumanConfirmationBoundaryTest {
         HumanConfirmationRequest request = new HumanConfirmationRequest(
                 "c-2", "r-2", "s-2", "change_view", "south-sector", NOW);
 
-        HumanConfirmation declined = new HumanConfirmationService().decline(request, NOW.plusSeconds(1));
+        HumanConfirmation required = new HumanConfirmation(
+                request.confirmationId(), request.requestId(), request.sessionId(),
+                request.operation(), request.scope(), ConfirmationStatus.REQUIRED, NOW);
+        HumanConfirmation declined = new HumanConfirmationService().decline(required, request, NOW.plusSeconds(1));
 
         assertEquals(ConfirmationStatus.DECLINED, declined.status());
         assertFalse(declined.confirmed());
@@ -59,6 +65,17 @@ class HumanConfirmationBoundaryTest {
         assertEquals(Set.of("confirmationId", "requestId", "sessionId", "operation", "scope", "status", "decidedAt"),
                 Set.of(confirmation.getClass().getRecordComponents()).stream()
                         .map(java.lang.reflect.RecordComponent::getName).collect(java.util.stream.Collectors.toSet()));
+    }
+
+    @Test
+    void mismatchedConfirmationCannotConfirmAnotherOperation() {
+        HumanConfirmation required = new HumanConfirmation(
+                "c-3", "r-3", "s-3", "start_analysis", "north-sector", ConfirmationStatus.REQUIRED, NOW);
+        HumanConfirmationRequest mismatched = new HumanConfirmationRequest(
+                "c-3", "r-3", "s-3", "change_view", "north-sector", NOW);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> new HumanConfirmationService().confirm(required, mismatched, NOW.plusSeconds(1)));
     }
 
     private HumanInteractionRequest request() {
