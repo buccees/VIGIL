@@ -339,6 +339,70 @@ class DeterministicFusionEngineTest {
                 result.exclusions().get(0).reason());
     }
 
+
+    @Test
+    void fusionDoesNotMutateAuthoritativeWorldModel() {
+        com.buccees.vigil.world.WorldModel worldModel = new com.buccees.vigil.world.WorldModel();
+        com.buccees.vigil.world.WorldModelUpdater updater = new com.buccees.vigil.world.WorldModelUpdater(worldModel);
+        com.buccees.vigil.world.Track existingTrack = track("existing-track", 5, 0, 0, 0.9, 0);
+        updater.update(existingTrack);
+        var before = worldModel.snapshot();
+
+        FusionEvidence evidence = evidence("camera-a", "track-a", 1, 2, 3, 0.8, null, 0);
+        engine.fuse(List.of(evidence), T0.plusMillis(100)).orElseThrow();
+
+        assertEquals(before, worldModel.snapshot());
+    }
+
+    @Test
+    void fusionAssociationIdRemainsDistinctFromContributingTrackIds() {
+        FusedEstimate result = engine.fuse(List.of(
+                evidence("camera-a", "track-a", 0, 0, 0, 0.8, null, 0),
+                evidence("camera-b", "track-b", 1, 0, 0, 0.7, null, 10)),
+                T0.plusMillis(100)).orElseThrow();
+
+        assertEquals("fusion:track-a+track-b", result.associationId());
+        assertEquals(List.of("track-a", "track-b"), result.trackIds());
+        assertFalse(result.associationId().equals(result.trackIds().get(0)));
+        assertFalse(result.associationId().equals(result.trackIds().get(1)));
+    }
+
+    @Test
+    void invalidConfidenceIsRejectedBeforeFusion() {
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> new Track("invalid-confidence", EntityType.VEHICLE, new LocalPosition(0, 0, 0),
+                        new LocalPosition(0, 0, 0), new Confidence(Double.NaN), T0,
+                        List.of("invalid-confidence-detection"), TrackLifecycleState.CONFIRMED));
+    }
+
+    @Test
+    void invalidSpatialValuesAreRejectedBeforeFusion() {
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> new LocalPosition(Double.POSITIVE_INFINITY, 0, 0));
+    }
+
+    @Test
+    void missingRequiredEvidenceIdentityIsRejected() {
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> new FusionEvidence("", track("track-a", 0, 0, 0, 0.8, 0),
+                        "local-world", T0, T0, null));
+    }
+
+    @Test
+    void missingRequiredFrameIdentityIsRejected() {
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> new FusionEvidence("camera-a", track("track-a", 0, 0, 0, 0.8, 0),
+                        " ", T0, T0, null));
+    }
+
+    @Test
+    void invalidTransformCannotBeApplied() {
+        SpatialTransform invalid = new SpatialTransform("sensor-a", "local-world",
+                new LocalPosition(1, 0, 0), false, "invalid-transform");
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
+                () -> invalid.apply(new LocalPosition(0, 0, 0)));
+    }
+
     private static FusionEvidence evidence(String source, String trackId, double x, double y, double z,
                                            double confidence, Double uncertainty, long eventOffsetMs) {
         return new FusionEvidence(source, track(trackId, x, y, z, confidence, eventOffsetMs),
