@@ -178,6 +178,11 @@ public final class WorldModelUpdater {
                 .distinct().toList();
     }
 
+    private static List<String> canonicalProvenance(List<String> first, List<String> second) {
+        return java.util.stream.Stream.concat(first.stream(), second.stream())
+                .distinct().sorted().toList();
+    }
+
     /**
      * Equal-timestamp track updates are resolved deterministically for state fields while
      * retaining the union of all evidence provenance. Provenance order records first-seen
@@ -186,8 +191,8 @@ public final class WorldModelUpdater {
     private static WorldEntity resolveEqualTimestampTrackUpdate(WorldEntity current, WorldEntity candidate) {
         WorldEntity winner = deterministicStateKey(candidate).compareTo(deterministicStateKey(current)) > 0
                 ? candidate : current;
-        List<String> contributingTrackIds = mergeProvenance(current.contributingTrackIds(), candidate.contributingTrackIds());
-        List<String> detectionIds = mergeProvenance(current.detectionIds(), candidate.detectionIds());
+        List<String> contributingTrackIds = canonicalProvenance(current.contributingTrackIds(), candidate.contributingTrackIds());
+        List<String> detectionIds = canonicalProvenance(current.detectionIds(), candidate.detectionIds());
         return new WorldEntity(winner.id(), winner.type(), winner.position(), winner.velocityMetersPerSecond(),
                 winner.confidence(), winner.positionUncertaintyMeters(), winner.lastUpdated(), winner.sourceTrackId(),
                 contributingTrackIds, detectionIds, winner.lifecycleState(), winner.validity(), winner.freshness());
