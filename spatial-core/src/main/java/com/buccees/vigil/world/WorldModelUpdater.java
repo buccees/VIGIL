@@ -38,11 +38,15 @@ public final class WorldModelUpdater {
         }
 
         WorldEntity current = worldModel.find(entityId).orElse(null);
-        if (current != null && shouldReject(track.lastUpdated(), current, toEntity(entityId, track, current))) {
+        WorldEntity next = toEntity(entityId, track, current);
+        if (current != null && track.lastUpdated().equals(current.lastUpdated())) {
+            next = resolveEqualTimestampTrackUpdate(current, next);
+            if (next.equals(current)) {
+                return current;
+            }
+        } else if (current != null && shouldReject(track.lastUpdated(), current, next)) {
             return current;
         }
-
-        WorldEntity next = toEntity(entityId, track, current);
         if (!worldModel.commitIfNewer(next)) {
             return worldModel.find(entityId).orElse(next);
         }
@@ -166,12 +170,27 @@ public final class WorldModelUpdater {
 
     private static List<String> mergeProvenance(List<String> existing, String value) {
         return java.util.stream.Stream.concat(existing.stream(), java.util.stream.Stream.of(value))
-                .distinct().sorted().toList();
+                .distinct().toList();
     }
 
     private static List<String> mergeProvenance(List<String> existing, List<String> values) {
         return java.util.stream.Stream.concat(existing.stream(), values.stream())
-                .distinct().sorted().toList();
+                .distinct().toList();
+    }
+
+    /**
+     * Equal-timestamp track updates are resolved deterministically for state fields while
+     * retaining the union of all evidence provenance. Provenance order records first-seen
+     * evidence, whereas the state winner is selected independently of arrival order.
+     */
+    private static WorldEntity resolveEqualTimestampTrackUpdate(WorldEntity current, WorldEntity candidate) {
+        WorldEntity winner = deterministicStateKey(candidate).compareTo(deterministicStateKey(current)) > 0
+                ? candidate : current;
+        List<String> contributingTrackIds = mergeProvenance(current.contributingTrackIds(), candidate.contributingTrackIds());
+        List<String> detectionIds = mergeProvenance(current.detectionIds(), candidate.detectionIds());
+        return new WorldEntity(winner.id(), winner.type(), winner.position(), winner.velocityMetersPerSecond(),
+                winner.confidence(), winner.positionUncertaintyMeters(), winner.lastUpdated(), winner.sourceTrackId(),
+                contributingTrackIds, detectionIds, winner.lifecycleState(), winner.validity(), winner.freshness());
     }
 
     private static WorldEntity toEntity(String entityId, FusedEstimate estimate) {
