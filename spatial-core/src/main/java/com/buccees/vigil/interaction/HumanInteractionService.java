@@ -61,6 +61,12 @@ public final class HumanInteractionService {
                     "Please clarify what you want VIGIL to do.",
                     now, "The request is too ambiguous to interpret safely without guessing.");
         }
+        if (request.requestedOperation() != null) {
+            return new HumanInteractionResponse(request.requestId(),
+                    HumanInteractionResponse.ResponseStatus.CONFIRMATION_REQUIRED,
+                    "Human confirmation is required before this operation may proceed.",
+                    now, "The operation is authenticated and authorized, but authorization alone does not constitute human confirmation.");
+        }
 
         return authorization;
     }
