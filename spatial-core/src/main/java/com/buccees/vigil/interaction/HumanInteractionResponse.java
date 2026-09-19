@@ -19,5 +19,5 @@ public record HumanInteractionResponse(
             throw new IllegalArgumentException("groundingSummary must not be blank");
     }
 
-    public enum ResponseStatus { ANSWERED, CLARIFICATION_REQUIRED, UNAVAILABLE, UNAUTHORIZED, AUTHENTICATION_REQUIRED }
+    public enum ResponseStatus { ANSWERED, CLARIFICATION_REQUIRED, CONFIRMATION_REQUIRED, UNAVAILABLE, UNAUTHORIZED, AUTHENTICATION_REQUIRED }
 }
