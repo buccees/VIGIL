@@ -2,6 +2,7 @@ package com.buccees.vigil.world;
 
 import com.buccees.vigil.fusion.FusedEstimate;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -80,6 +81,20 @@ public final class WorldModelUpdater {
         publishEvent(next, current, null, estimate.associationId(), WorldModelUpdateOrigin.FUSED_ESTIMATE,
                 estimate.trackIds(), eventType);
         return next;
+    }
+
+    /**
+     * Recomputes freshness through the same controlled boundary used for track and fusion
+     * projections. Freshness is derived from authoritative event time, not ingestion order.
+     */
+    public synchronized void updateFreshness(Instant now, java.time.Duration agingAfter, java.time.Duration staleAfter) {
+        Objects.requireNonNull(now, "now");
+        Objects.requireNonNull(agingAfter, "agingAfter");
+        Objects.requireNonNull(staleAfter, "staleAfter");
+        if (agingAfter.isNegative() || staleAfter.compareTo(agingAfter) < 0) {
+            throw new IllegalArgumentException("invalid freshness thresholds");
+        }
+        worldModel.updateFreshness(now, agingAfter, staleAfter);
     }
 
     public synchronized Map<String, String> trackEntityAssociations() {
