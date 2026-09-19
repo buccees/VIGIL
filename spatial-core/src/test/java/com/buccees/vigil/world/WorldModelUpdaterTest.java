@@ -14,6 +14,36 @@ class WorldModelUpdaterTest {
     private static final Instant T0 = Instant.parse("2026-09-02T00:00:00Z");
 
     @Test
+    void invalidTrackTimestampCannotMutateWorldModelOrAssociations() {
+        WorldModel model = new WorldModel();
+        WorldModelUpdater updater = new WorldModelUpdater(model);
+
+        assertTrue(model.snapshot().isEmpty());
+        org.junit.jupiter.api.Assertions.assertThrows(NullPointerException.class,
+                () -> updater.update(new Track("invalid-time", EntityType.VEHICLE,
+                        new LocalPosition(0, 0, 0), new LocalPosition(0, 0, 0),
+                        new Confidence(0.8), null, List.of("d1"), TrackLifecycleState.CONFIRMED)));
+
+        assertTrue(model.snapshot().isEmpty());
+        assertTrue(updater.trackEntityAssociations().isEmpty());
+    }
+
+    @Test
+    void invalidTrackSpatialStateCannotMutateWorldModelOrAssociations() {
+        WorldModel model = new WorldModel();
+        WorldModelUpdater updater = new WorldModelUpdater(model);
+
+        assertTrue(model.snapshot().isEmpty());
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> updater.update(new Track("invalid-position", EntityType.VEHICLE,
+                        new LocalPosition(Double.NaN, 0, 0), new LocalPosition(0, 0, 0),
+                        new Confidence(0.8), T0, List.of("d1"), TrackLifecycleState.CONFIRMED)));
+
+        assertTrue(model.snapshot().isEmpty());
+        assertTrue(updater.trackEntityAssociations().isEmpty());
+    }
+
+    @Test
     void firstTrackCreatesOneEntityAndSecondUpdateReusesIt() {
         WorldModel model = new WorldModel();
         List<WorldModelEvent> events = new ArrayList<>();
