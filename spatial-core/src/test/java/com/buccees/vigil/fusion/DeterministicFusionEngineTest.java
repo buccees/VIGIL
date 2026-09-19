@@ -185,6 +185,50 @@ class DeterministicFusionEngineTest {
     }
 
     @Test
+    void degradedEvidenceIsIncludedButDoesNotQualifyWhenPolicyAllowsIt() {
+        FusionPolicy allowingPolicy = new FusionPolicy(Duration.ofMillis(500), 5.0, 20.0,
+                Duration.ofSeconds(2), true);
+        FusionEvidence degraded = new FusionEvidence(
+                "camera-a",
+                trackWithState("track-a", 0, 0, 0, 0.9, 0, TrackLifecycleState.DEGRADED),
+                "local-world",
+                T0,
+                T0,
+                null);
+
+        FusedEstimate result = new DeterministicFusionEngine(allowingPolicy)
+                .fuse(List.of(degraded), T0.plusMillis(100)).orElseThrow();
+
+        assertEquals(List.of("track-a"), result.trackIds());
+        assertFalse(result.qualified());
+        assertTrue(result.qualityNote().contains("Degraded evidence"));
+    }
+
+    @Test
+    void degradedEvidenceCanBeRejectedByPolicy() {
+        FusionPolicy rejectingPolicy = new FusionPolicy(Duration.ofMillis(500), 5.0, 20.0,
+                Duration.ofSeconds(2), false);
+        FusionEvidence degraded = new FusionEvidence(
+                "camera-a",
+                trackWithState("track-a", 0, 0, 0, 0.9, 0, TrackLifecycleState.DEGRADED),
+                "local-world",
+                T0,
+                T0,
+                null);
+        FusionEvidence healthy = evidence("camera-b", "track-b", 1, 0, 0, 0.8, null, 0);
+
+        DeterministicFusionEngine.FusionResult result = new DeterministicFusionEngine(rejectingPolicy)
+                .fuseDetailed(List.of(degraded, healthy), T0.plusMillis(100));
+
+        assertEquals(List.of("camera-b"), result.estimate().orElseThrow().sourceIds());
+        assertTrue(result.estimate().orElseThrow().qualified());
+        assertEquals(1, result.exclusions().size());
+        assertEquals("camera-a:track-a", result.exclusions().get(0).evidenceId());
+        assertEquals(DeterministicFusionEngine.FusionExclusionReason.INVALID_SOURCE_STATE,
+                result.exclusions().get(0).reason());
+    }
+
+    @Test
     void invalidTrackLifecycleIsExplicitlyExcluded() {
         FusionEvidence terminated = new FusionEvidence(
                 "camera-a",
