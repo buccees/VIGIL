@@ -91,6 +91,34 @@ class WorldModelUpdaterTest {
     }
 
     @Test
+    void acceptedUpdatesEmitDeterministicEventsOnlyAfterStateChanges() {
+        List<WorldModelEvent> firstEvents = new ArrayList<>();
+        WorldModelUpdater firstUpdater = new WorldModelUpdater(new WorldModel(), firstEvents::add);
+        Track first = new Track("track-1", EntityType.VEHICLE, new LocalPosition(1, 0, 0),
+                new LocalPosition(0, 0, 0), new Confidence(0.8), T0, List.of("d1"), TrackLifecycleState.CONFIRMED);
+        Track second = new Track("track-1", EntityType.VEHICLE, new LocalPosition(2, 0, 0),
+                new LocalPosition(1, 0, 0), new Confidence(0.9), T0.plusSeconds(1), List.of("d2"), TrackLifecycleState.DEGRADED);
+        firstUpdater.update(first);
+        firstUpdater.update(second);
+        firstUpdater.update(first);
+
+        List<WorldModelEvent> secondEvents = new ArrayList<>();
+        WorldModelUpdater secondUpdater = new WorldModelUpdater(new WorldModel(), secondEvents::add);
+        secondUpdater.update(first);
+        secondUpdater.update(second);
+        secondUpdater.update(first);
+
+        assertEquals(firstEvents, secondEvents);
+        assertEquals(2, firstEvents.size());
+        assertEquals("world-event-1", firstEvents.get(0).id());
+        assertEquals("world-event-2", firstEvents.get(1).id());
+        assertEquals(WorldModelEvent.Type.WORLD_ENTITY_CREATED, firstEvents.get(0).type());
+        assertEquals(WorldModelEvent.Type.WORLD_ENTITY_BECAME_DEGRADED, firstEvents.get(1).type());
+        assertEquals(TrackLifecycleState.CONFIRMED, firstEvents.get(0).stateAfter());
+        assertEquals(TrackLifecycleState.DEGRADED, firstEvents.get(1).stateAfter());
+    }
+
+    @Test
     void lifecycleIsProjectedWithoutDeletingIdentity() {
         WorldModel model = new WorldModel();
         List<WorldModelEvent> events = new ArrayList<>();
