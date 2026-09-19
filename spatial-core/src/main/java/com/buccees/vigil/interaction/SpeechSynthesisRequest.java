@@ -8,6 +8,7 @@ public record SpeechSynthesisRequest(
         String sessionId,
         String text,
         String groundingSummary,
+        String provenance,
         Instant synthesisTime
 ) {
     public SpeechSynthesisRequest {
@@ -15,6 +16,7 @@ public record SpeechSynthesisRequest(
         if (sessionId == null || sessionId.isBlank()) throw new IllegalArgumentException("sessionId must not be blank");
         if (text == null || text.isBlank()) throw new IllegalArgumentException("text must not be blank");
         if (groundingSummary == null || groundingSummary.isBlank()) throw new IllegalArgumentException("groundingSummary must not be blank");
+        if (provenance == null || provenance.isBlank()) throw new IllegalArgumentException("provenance must not be blank");
         Objects.requireNonNull(synthesisTime, "synthesisTime");
     }
 
@@ -25,6 +27,7 @@ public record SpeechSynthesisRequest(
                 sessionId,
                 response.message(),
                 response.groundingSummary(),
+                "human-interaction-response:" + response.requestId(),
                 now);
     }
 }
