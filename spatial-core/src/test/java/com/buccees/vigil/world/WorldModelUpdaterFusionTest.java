@@ -69,6 +69,26 @@ class WorldModelUpdaterFusionTest {
     }
 
     @Test
+    void equalTimestampFusedUpdatesResolveDeterministically() {
+        FusedEstimate first = estimate("fusion-a", List.of("track-a", "track-b"), T0, 1.0);
+        FusedEstimate second = estimate("fusion-b", List.of("track-a", "track-b"), T0, 9.0);
+
+        WorldModel firstModel = new WorldModel();
+        WorldModelUpdater firstUpdater = new WorldModelUpdater(firstModel);
+        WorldEntity firstResult = firstUpdater.update(first);
+        WorldEntity firstOrderedResult = firstUpdater.update(second);
+
+        WorldModel secondModel = new WorldModel();
+        WorldModelUpdater secondUpdater = new WorldModelUpdater(secondModel);
+        WorldEntity secondResult = secondUpdater.update(second);
+        WorldEntity secondOrderedResult = secondUpdater.update(first);
+
+        assertEquals(firstOrderedResult, secondOrderedResult);
+        assertEquals(firstResult.id(), firstOrderedResult.id());
+        assertEquals(secondResult.id(), secondOrderedResult.id());
+    }
+
+    @Test
     void olderFusedEstimateCannotOverwriteCurrentState() {
         WorldModel worldModel = new WorldModel();
         WorldModelUpdater updater = new WorldModelUpdater(worldModel);
