@@ -117,6 +117,18 @@ class DeterministicFusionEngineTest {
     }
 
     @Test
+    void confidenceAndUncertaintyRemainIndependentOutputs() {
+        FusionEvidence highConfidence = evidence("camera-a", "track-a", 0, 0, 0, 0.9, 1.0, 0);
+        FusionEvidence lowConfidence = evidence("camera-b", "track-b", 2, 0, 0, 0.3, 9.0, 100);
+
+        FusedEstimate result = engine.fuse(List.of(lowConfidence, highConfidence), T0.plusMillis(200)).orElseThrow();
+
+        assertEquals(0.75, result.confidence().value(), 1.0e-9);
+        assertEquals(3.0, result.positionUncertaintyMeters().orElseThrow(), 1.0e-9);
+        assertTrue(result.qualified());
+    }
+
+    @Test
     void missingUncertaintyRemainsUnknown() {
         FusionEvidence a = evidence("camera-a", "track-a", 0, 0, 0, 0.8, null, 0);
         FusionEvidence b = evidence("camera-b", "track-b", 1, 0, 0, 0.8, 3.0, 100);
