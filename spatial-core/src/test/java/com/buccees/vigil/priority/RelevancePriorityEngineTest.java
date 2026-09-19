@@ -8,6 +8,7 @@ import com.buccees.vigil.world.WorldEntity;
 import com.buccees.vigil.world.WorldEntityFreshness;
 import com.buccees.vigil.world.WorldEntityValidity;
 import com.buccees.vigil.world.WorldModel;
+import com.buccees.vigil.world.WorldModelUpdater;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -116,8 +117,11 @@ class RelevancePriorityEngineTest {
     @Test
     void lowPriorityDoesNotRemoveWorldEntity() {
         WorldModel model = new WorldModel();
+        WorldModelUpdater updater = new WorldModelUpdater(model);
         WorldEntity entity = entity("entity-1", 1000, 0, 0, 0, 0.9, WorldEntityValidity.VALID, WorldEntityFreshness.CURRENT);
-        model.upsert(entity);
+        updater.update(new com.buccees.vigil.world.Track(
+                "track-entity-1", EntityType.PERSON, entity.position(), entity.velocityMetersPerSecond(),
+                entity.confidence(), entity.lastUpdated(), List.of("detection-entity-1"), TrackLifecycleState.CONFIRMED));
         RelevancePriorityContext context = RelevancePriorityContext.at(T0);
 
         engine.evaluate(entity, context, PriorityPolicy.defaults());
