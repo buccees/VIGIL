@@ -8,13 +8,24 @@ public record FusionPolicy(
         Duration maxEventTimeSkew,
         double maxAssociationDistanceMeters,
         double conflictDistanceMeters,
-        Duration maxEvidenceAge
+        Duration maxEvidenceAge,
+        boolean allowDegradedEvidence
 ) {
-    /** Backward-compatible constructor using the conservative default evidence age. */
+    /** Backward-compatible constructor using conservative evidence-age and degraded-evidence defaults. */
     public FusionPolicy(Duration maxEventTimeSkew,
                         double maxAssociationDistanceMeters,
                         double conflictDistanceMeters) {
-        this(maxEventTimeSkew, maxAssociationDistanceMeters, conflictDistanceMeters, Duration.ofSeconds(2));
+        this(maxEventTimeSkew, maxAssociationDistanceMeters, conflictDistanceMeters,
+                Duration.ofSeconds(2), true);
+    }
+
+    /** Backward-compatible constructor with explicit evidence age and degraded-evidence acceptance. */
+    public FusionPolicy(Duration maxEventTimeSkew,
+                        double maxAssociationDistanceMeters,
+                        double conflictDistanceMeters,
+                        Duration maxEvidenceAge) {
+        this(maxEventTimeSkew, maxAssociationDistanceMeters, conflictDistanceMeters,
+                maxEvidenceAge, true);
     }
 
     public FusionPolicy {
@@ -35,6 +46,6 @@ public record FusionPolicy(
     }
 
     public static FusionPolicy conservativeDefaults() {
-        return new FusionPolicy(Duration.ofMillis(250), 5.0, 20.0, Duration.ofSeconds(2));
+        return new FusionPolicy(Duration.ofMillis(250), 5.0, 20.0, Duration.ofSeconds(2), true);
     }
 }
