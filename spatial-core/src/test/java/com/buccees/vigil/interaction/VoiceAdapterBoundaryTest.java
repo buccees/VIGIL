@@ -77,6 +77,7 @@ class VoiceAdapterBoundaryTest {
         assertEquals("session-7", synthesis.sessionId());
         assertEquals(response.message(), synthesis.text());
         assertEquals(response.groundingSummary(), synthesis.groundingSummary());
+        assertEquals("human-interaction-response:req-7", synthesis.provenance());
     }
 
     @Test
