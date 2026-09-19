@@ -9,11 +9,15 @@ public final class AttentionInteractionRouter {
             AttentionInteractionHandoff handoff,
             InteractionSession session,
             InputModality modality,
+            AuthenticationState authentication,
+            AuthorizationContext authorization,
             Instant now
     ) {
         Objects.requireNonNull(handoff, "handoff");
         Objects.requireNonNull(session, "session");
         Objects.requireNonNull(modality, "modality");
+        Objects.requireNonNull(authentication, "authentication");
+        Objects.requireNonNull(authorization, "authorization");
         Objects.requireNonNull(now, "now");
 
         if (!session.acceptsInteraction()) throw new IllegalStateException("Session is not active");
@@ -22,8 +26,8 @@ public final class AttentionInteractionRouter {
         return new HumanInteractionRequest(
                 handoff.requestId(),
                 session.sessionId(),
-                AuthenticationState.AUTHENTICATED,
-                new AuthorizationContext(java.util.Set.of()),
+                authentication,
+                authorization,
                 modality,
                 handoff.prompt(),
                 null,
