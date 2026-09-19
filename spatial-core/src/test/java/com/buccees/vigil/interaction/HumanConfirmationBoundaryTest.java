@@ -32,9 +32,6 @@ class HumanConfirmationBoundaryTest {
                 request.operation(), request.scope(), ConfirmationStatus.REQUIRED, NOW);
         assertFalse(required.confirmed());
 
-        HumanConfirmation required = new HumanConfirmation(
-                request.confirmationId(), request.requestId(), request.sessionId(),
-                request.operation(), request.scope(), ConfirmationStatus.REQUIRED, NOW);
         HumanConfirmation confirmed = service.confirm(required, request, NOW.plusSeconds(1));
         assertEquals(ConfirmationStatus.CONFIRMED, confirmed.status());
         assertTrue(confirmed.confirmed());
