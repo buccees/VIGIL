@@ -52,8 +52,10 @@ public final class DeterministicFusionEngine {
         List<FusionExclusion> exclusions = new ArrayList<>();
         List<FusionEvidence> temporallyEligible = new ArrayList<>();
         for (FusionEvidence candidate : valid) {
-            if (candidate.track().lifecycleState() == TrackLifecycleState.STALE
-                    || candidate.track().lifecycleState() == TrackLifecycleState.TERMINATED) {
+            TrackLifecycleState lifecycleState = candidate.track().lifecycleState();
+            if (lifecycleState == TrackLifecycleState.STALE
+                    || lifecycleState == TrackLifecycleState.TERMINATED
+                    || (lifecycleState == TrackLifecycleState.DEGRADED && !policy.allowDegradedEvidence())) {
                 exclusions.add(new FusionExclusion(candidate.evidenceId(), FusionExclusionReason.INVALID_SOURCE_STATE));
                 continue;
             }
