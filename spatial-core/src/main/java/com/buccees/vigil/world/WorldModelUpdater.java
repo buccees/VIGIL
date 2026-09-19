@@ -35,7 +35,7 @@ public final class WorldModelUpdater {
         }
 
         WorldEntity current = worldModel.find(entityId).orElse(null);
-        if (current != null && track.lastUpdated().isBefore(current.lastUpdated())) {
+        if (current != null && shouldReject(track.lastUpdated(), current, toEntity(entityId, track, current))) {
             return current;
         }
 
@@ -62,11 +62,10 @@ public final class WorldModelUpdater {
 
         String entityId = resolveFusedEntity(estimate);
         WorldEntity current = worldModel.find(entityId).orElse(null);
-        if (current != null && estimate.latestEventTime().isBefore(current.lastUpdated())) {
+        WorldEntity next = toEntity(entityId, estimate);
+        if (current != null && shouldReject(estimate.latestEventTime(), current, next)) {
             return current;
         }
-
-        WorldEntity next = toEntity(entityId, estimate);
         if (!worldModel.commitIfNewer(next)) {
             return worldModel.find(entityId).orElse(next);
         }
@@ -166,6 +165,26 @@ public final class WorldModelUpdater {
             case TERMINATED -> WorldModelEvent.Type.WORLD_ENTITY_TERMINATED;
             default -> WorldModelEvent.Type.WORLD_ENTITY_UPDATED;
         };
+    }
+
+    /**
+     * Equal timestamps are resolved by a stable state key rather than arrival order.
+     * This keeps authoritative state deterministic for replayed or concurrently produced
+     * inputs that carry the same event time.
+     */
+    private static boolean shouldReject(java.time.Instant incomingTime, WorldEntity current, WorldEntity candidate) {
+        int timeComparison = incomingTime.compareTo(current.lastUpdated());
+        if (timeComparison < 0) return true;
+        if (timeComparison > 0) return false;
+        return deterministicStateKey(candidate).compareTo(deterministicStateKey(current)) <= 0;
+    }
+
+    private static String deterministicStateKey(WorldEntity entity) {
+        return entity.type() + "|" + entity.position() + "|" + entity.velocityMetersPerSecond()
+                + "|" + entity.confidence() + "|" + entity.positionUncertaintyMeters()
+                + "|" + entity.lastUpdated() + "|" + entity.sourceTrackId()
+                + "|" + entity.contributingTrackIds() + "|" + entity.detectionIds()
+                + "|" + entity.lifecycleState() + "|" + entity.validity() + "|" + entity.freshness();
     }
 
     private static void validate(Track track) {
