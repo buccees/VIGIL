@@ -9,12 +9,11 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class WorldModel {
     private final Map<String, WorldEntity> entities = new ConcurrentHashMap<>();
 
-    public synchronized void upsert(WorldEntity entity) {
-        entities.put(entity.id(), entity);
-    }
-
-    /** Replaces an entity only when the incoming state is not older than the current state. */
-    public synchronized boolean upsertIfNewer(WorldEntity entity) {
+    /**
+     * Controlled commit operation for WorldModelUpdater.
+     * Package visibility prevents consumers in other packages from bypassing the update boundary.
+     */
+    synchronized boolean commitIfNewer(WorldEntity entity) {
         WorldEntity current = entities.get(entity.id());
         if (current != null && entity.lastUpdated().isBefore(current.lastUpdated())) {
             return false;
@@ -45,9 +44,5 @@ public final class WorldModel {
 
     public java.util.Collection<WorldEntity> snapshot() {
         return java.util.List.copyOf(entities.values());
-    }
-
-    public void clear() {
-        entities.clear();
     }
 }
