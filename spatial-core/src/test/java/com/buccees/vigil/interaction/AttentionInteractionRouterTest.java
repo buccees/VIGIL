@@ -33,13 +33,30 @@ class AttentionInteractionRouterTest {
         AttentionInteractionHandoff handoff = AttentionInteractionHandoff.from("req-1", "session-1", item, NOW.plusSeconds(2));
 
         HumanInteractionRequest request = new AttentionInteractionRouter().createRequest(
-                handoff, session, InputModality.TEXT, NOW.plusSeconds(3));
+                handoff, session, InputModality.TEXT, AuthenticationState.AUTHENTICATED,
+                new AuthorizationContext(Set.of()), NOW.plusSeconds(3));
 
         assertEquals("entity-7", request.requestedScope());
         assertEquals(InputModality.TEXT, request.modality());
+        assertTrue(request.authenticated());
         assertTrue(request.authorized());
         assertEquals(null, request.requestedOperation());
         assertEquals("attention-handoff:entity-7", request.interpretationProvenance());
+    }
+
+    @Test
+    void handoffDoesNotInventAuthentication() {
+        AttentionItem item = new AttentionItem("entity-7", .8, .9, NOW, .7,
+                WorldEntityValidity.VALID, WorldEntityFreshness.CURRENT, Map.of(), Set.of(),
+                com.buccees.vigil.attention.AttentionLifecycle.ACTIVE);
+        InteractionSession session = InteractionSession.create("session-1", NOW).activate(NOW.plusSeconds(1));
+        AttentionInteractionHandoff handoff = AttentionInteractionHandoff.from("req-2", "session-1", item, NOW.plusSeconds(2));
+
+        HumanInteractionRequest request = new AttentionInteractionRouter().createRequest(
+                handoff, session, InputModality.TEXT, AuthenticationState.UNAUTHENTICATED,
+                new AuthorizationContext(Set.of()), NOW.plusSeconds(3));
+
+        assertFalse(request.authenticated());
     }
 
     @Test
@@ -50,6 +67,7 @@ class AttentionInteractionRouterTest {
         InteractionSession session = InteractionSession.create("session-1", NOW);
         AttentionInteractionHandoff handoff = AttentionInteractionHandoff.from("req-1", "session-1", item, NOW);
         assertThrows(IllegalStateException.class, () ->
-                new AttentionInteractionRouter().createRequest(handoff, session, InputModality.TEXT, NOW));
+                new AttentionInteractionRouter().createRequest(handoff, session, InputModality.TEXT,
+                        AuthenticationState.AUTHENTICATED, new AuthorizationContext(Set.of()), NOW));
     }
 }
