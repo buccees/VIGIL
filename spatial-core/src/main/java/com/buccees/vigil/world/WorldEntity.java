@@ -52,6 +52,16 @@ public record WorldEntity(
                 WorldEntityValidity.VALID, WorldEntityFreshness.CURRENT);
     }
 
+    /** Compatibility constructor preserving the pre-uncertainty full projection shape. */
+    public WorldEntity(String id, EntityType type, LocalPosition position, LocalPosition velocityMetersPerSecond,
+                       Confidence confidence, Instant lastUpdated, String sourceTrackId,
+                       List<String> contributingTrackIds, List<String> detectionIds,
+                       TrackLifecycleState lifecycleState, WorldEntityValidity validity,
+                       WorldEntityFreshness freshness) {
+        this(id, type, position, velocityMetersPerSecond, confidence, OptionalDouble.empty(), lastUpdated,
+                sourceTrackId, contributingTrackIds, detectionIds, lifecycleState, validity, freshness);
+    }
+
     public WorldEntity(String id, EntityType type, LocalPosition position, LocalPosition velocityMetersPerSecond,
                        Confidence confidence, Instant lastUpdated, String sourceTrackId,
                        List<String> detectionIds, TrackLifecycleState lifecycleState,
