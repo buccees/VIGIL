@@ -95,6 +95,19 @@ class DeterministicFusionEngineTest {
     }
 
     @Test
+    void fusionAssociationIdentityRemainsDistinctFromContributingTrackIdentity() {
+        FusionEvidence a = evidence("camera-a", "track-a", 0, 0, 0, 0.8, null, 0);
+        FusionEvidence b = evidence("camera-b", "track-b", 1, 0, 0, 0.7, null, 50);
+
+        FusedEstimate result = engine.fuse(List.of(a, b), T0.plusMillis(100)).orElseThrow();
+
+        assertEquals("fusion:track-a+track-b", result.associationId());
+        assertEquals(List.of("track-a", "track-b"), result.trackIds());
+        assertFalse(result.trackIds().contains(result.associationId()));
+        assertTrue(result.deterministicAssociationKey().startsWith("fusion:"));
+    }
+
+    @Test
     void validSpatialTransformAlignsEvidenceIntoFusionFrame() {
         FusionEvidence a = evidence("camera-a", "track-a", 0, 0, 0, 0.8, null, 0);
         FusionEvidence b = new FusionEvidence("camera-b", trackWithVelocity("track-b", -1, 0, 0, 0.8, 50,
