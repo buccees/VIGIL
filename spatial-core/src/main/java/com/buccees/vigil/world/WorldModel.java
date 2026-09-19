@@ -29,7 +29,11 @@ public final class WorldModel {
         return Optional.ofNullable(entities.get(id));
     }
 
-    public synchronized void updateFreshness(Instant now, java.time.Duration agingAfter, java.time.Duration staleAfter) {
+    /**
+     * Recomputes derived freshness state for the current projection.
+     * Package visibility keeps this mutation behind WorldModelUpdater.
+     */
+    synchronized void updateFreshness(Instant now, java.time.Duration agingAfter, java.time.Duration staleAfter) {
         if (now == null || agingAfter == null || staleAfter == null || agingAfter.isNegative() || staleAfter.compareTo(agingAfter) < 0) {
             throw new IllegalArgumentException("invalid freshness thresholds");
         }
