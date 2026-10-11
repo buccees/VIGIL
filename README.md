@@ -16,62 +16,61 @@ VIGIL is intentionally a **presentation and awareness system, not an autonomous 
 
 > **Planning note:** Dates below are working targets, not promises. They are intended to keep implementation ordered, expose deferred work, and make it clear when each architectural concern is expected to be resolved. CI, contract changes, or newly discovered dependencies may move a target date.
 
-## Current Priority — Spatial / Temporal Fusion
+## Completed — Spatial / Temporal Fusion
 
-**Target completion:** **September 6, 2026**  
-**Status:** 🟡 In progress
+**Status:** ✅ Complete
 
-Before advancing to Relevance / Priority, the following must be completed:
+The Fusion foundation and World Model mutation boundary are complete and CI-verified. The former blocking contract and observability items are now part of the completed baseline.
 
 - [x] Implement deterministic fusion foundation.
 - [x] Preserve confidence, uncertainty, freshness, and provenance.
 - [x] Prevent fusion from directly mutating the authoritative World Model.
 - [x] Make the World Model update boundary explicit and observable.
 - [x] Verify the boundary implementation in CI (#38 passed).
-- [ ] Reconcile the Track → World Model contract with `FusedEstimate`.
-- [ ] Make fusion exclusions/rejections explicitly observable.
-- [ ] Clarify deterministic association keys versus authoritative World Entity identity.
-- [ ] Correct and formalize `FusedEstimate.qualified` semantics.
-- [ ] Establish and maintain the durable CI attempt log.
-- [ ] Run final Fusion contract/integration verification.
+- [x] Reconcile the Track → World Model contract with `FusedEstimate`.
+- [x] Make fusion exclusions/rejections explicitly observable.
+- [x] Clarify deterministic association keys versus authoritative World Entity identity.
+- [x] Correct and formalize `FusedEstimate.qualified` semantics.
+- [x] Establish and maintain the durable CI attempt log.
+- [x] Run final Fusion contract/integration verification.
 
 **Exit condition:** Fusion behavior, contracts, diagnostics, provenance, and World Model mutation boundaries are consistent, tested, and CI-verified.
 
-## Next — Relevance / Priority
+## Completed — Relevance / Priority
 
-**Target:** **September 7–11, 2026**  
-**Priority:** 🔴 Highest after Fusion
+**Status:** ✅ Complete
 
-Implement deterministic, explainable relevance and priority over authoritative World Model information.
+The deterministic relevance and priority foundation is implemented and CI-verified.
 
-Required outcomes:
+Completed outcomes:
 
-- [ ] Define relevance independently from confidence and truth.
-- [ ] Define priority independently from confidence and uncertainty.
-- [ ] Preserve low-priority information in the World Model.
-- [ ] Establish explainable priority factors and precedence.
-- [ ] Test priority changes as spatial/contextual conditions change.
-- [ ] Define failure and unavailable-context behavior.
+- [x] Define relevance independently from confidence and truth.
+- [x] Define priority independently from confidence and uncertainty.
+- [x] Preserve low-priority information in the World Model.
+- [x] Establish explainable priority factors and precedence.
+- [x] Test priority changes as spatial/contextual conditions change.
+- [x] Define failure and unavailable-context behavior.
 
 **Exit condition:** Priority changes presentation relevance without altering authoritative world state, and the behavior is deterministic and explainable.
 
-## Then — Attention / Presentation
+## Current Priority — Attention / Presentation
 
 **Target:** **September 12–18, 2026**  
 **Priority:** 🟠 High
 
-Build the human-scale presentation layer on top of World Model state and Relevance / Priority.
+The core human-scale presentation layer is implemented. Attention policy and queueing are complete; the explicit dispatch boundary is the remaining implementation step.
 
-- [ ] Define attention-management contract.
-- [ ] Represent persistence, freshness, uncertainty, and provenance in presentation.
-- [ ] Prevent presentation from becoming a source of environmental truth.
-- [ ] Preserve lower-priority information for inspection.
-- [ ] Define latency and presentation-quality measurements.
-- [ ] Establish the first implementation-level presentation interface.
+- [x] Define attention-management contract.
+- [x] Represent priority, explanation, and presentation action explicitly.
+- [x] Prevent presentation from becoming a source of environmental truth.
+- [x] Preserve lower-priority information for inspection.
+- [x] Establish deterministic attention queue deduplication and ordering.
+- [ ] Verify and merge the explicit presentation dispatch boundary (PR #13).
+- [ ] Establish final attention/presentation CI verification.
 
 **Exit condition:** VIGIL can convert prioritized environmental information into a bounded, understandable presentation without mutating authoritative state.
 
-## Then — Human Interaction / Voice
+## Next — Human Interaction / Voice
 
 **Target:** **September 19–25, 2026**  
 **Priority:** 🟠 High
@@ -79,6 +78,8 @@ Build the human-scale presentation layer on top of World Model state and Relevan
 Implement bidirectional text and optional voice interaction within the approved human-decision boundary.
 
 - [ ] Implement authorized information queries.
+- [x] Establish explicit human confirmation without granting authorization or executing operations.
+- [x] Preserve interaction provenance and make freshness an explicit decision boundary.
 - [ ] Ground responses in current World Model state, history, provenance, freshness, and uncertainty.
 - [ ] Define ambiguity and stale-data behavior.
 - [ ] Keep AI/voice separate from authorization and physical action.
@@ -527,15 +528,23 @@ VIGIL/
 
 The current implementation is intentionally focused on the spatial foundation. The repository should grow by adding well-defined architectural layers rather than allowing sensor-specific or UI-specific code to become the system's source of truth.
 
+## Current Milestone Status
+
+As of **September 18, 2026**, VIGIL has completed the Fusion and Relevance / Priority foundations and the core Attention policy/queue layer. **PR #13** is the current open presentation-dispatch step and is not counted as complete until CI verification and merge.
+
+**Completed:** Fusion → Relevance / Priority → Attention policy → Attention queue → Human confirmation boundary → Interaction provenance/freshness foundation.
+
+**In progress:** Presentation dispatch boundary.
+
+**Next:** Human Interaction / Voice, followed by end-to-end integration and release-gating verification.
+
 ## Current Engineering Direction
 
-The current spatial-core implementation establishes the early perception chain:
+The current spatial-core implementation has progressed through:
 
-**Observation → Detection → Track**
+**Observation → Detection → Track → Fusion → World Model → Relevance / Priority → Attention / Presentation**
 
-The next architectural step is to integrate persistent tracks into the World Model while preserving the distinction between current world state, perception evidence, and historical track information.
-
-Future work should then build toward spatial/temporal fusion, world-state services, relevance and priority, attention-aware presentation, navigation/search/inspection capabilities, environmental analysis, and optional AI-assisted interpretation.
+The immediate engineering task is to finish the presentation dispatch boundary without allowing presentation to mutate authoritative state or execute operations. After that, work moves into Human Interaction / Voice and then end-to-end integration and release-gating verification.
 
 ## Documentation Rules
 
