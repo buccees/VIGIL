@@ -304,11 +304,12 @@ Coreless AI/model work, Qwen3 work, persistent-storage work, and VIGIL integrati
 The feature branch feature/coreless-input-contract now contains an initial Java 17 contract in com.buccees.vigil.input:
 
 - versioned Coreless ABI v1 event kinds and coordinate frames with wire-compatible values;
+- a JSON-library-neutral field codec for snake_case ABI fields, including nullable optionals and strict malformed-field rejection;
 - validated immutable raw-event envelopes;
 - negotiated device context and capability checks;
 - provenance-bearing interpreted events;
 - an optional interpreter interface and raw-preserving router;
-- deterministic tests for validation, device assignment, monotonic sequence ordering, provenance, interpreter outage, and raw-only fallback.
+- deterministic tests for validation, device assignment, per-device monotonic sequence and timestamp ordering, codec round-trip, provenance, interpreter outage, and raw-only fallback.
 
 This is an integration contract, not a new physical input or execution authority. Coreless still owns device discovery, assignment, raw input transport, and application delivery. The VIGIL adapter consumes only the currently negotiated event and device context. The implementation is intentionally separate from the default branch until its CI passes and the PR is reviewed.
 
