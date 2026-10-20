@@ -80,6 +80,39 @@ class CorelessInputEventCodecTest {
                 () -> event.metadata().put("source", "tampered"));
     }
 
+    @Test
+    void nestedMetadataIsFrozenButEncoderReturnsJsonNativeContainers() {
+        Map<String, Object> nested = new LinkedHashMap<>();
+        nested.put("reading", 512);
+        java.util.List<Object> history = new java.util.ArrayList<>(java.util.List.of(1, 2));
+        nested.put("history", history);
+        Map<String, Object> metadata = new LinkedHashMap<>();
+        metadata.put("payload", nested);
+
+        CorelessInputEvent event = new CorelessInputEvent(
+                1, InputEventKind.DEVICE_STATE, "arduino-1", 10, 1,
+                CoordinateFrame.HOST, null, null, null, null, null, metadata);
+        nested.put("reading", 0);
+        history.add(3);
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> snapshotPayload = (Map<String, Object>) event.metadata().get("payload");
+        assertEquals(512, snapshotPayload.get("reading"));
+        assertEquals(List.of(1, 2), snapshotPayload.get("history"));
+        assertThrows(UnsupportedOperationException.class,
+                () -> snapshotPayload.put("reading", 0));
+        @SuppressWarnings("unchecked")
+        List<Object> snapshotHistory = (List<Object>) snapshotPayload.get("history");
+        assertThrows(UnsupportedOperationException.class, () -> snapshotHistory.add(3));
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> wireMetadata = (Map<String, Object>) CorelessInputEventCodec.encode(event).get("metadata");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> wirePayload = (Map<String, Object>) wireMetadata.get("payload");
+        assertEquals(List.of(1, 2), wirePayload.get("history"));
+        assertDoesNotThrow(() -> wirePayload.put("serializer-ready", true));
+    }
+
     private static Map<String, Object> minimalFields() {
         Map<String, Object> fields = new LinkedHashMap<>();
         fields.put("abi_version", 1);
