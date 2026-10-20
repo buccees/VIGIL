@@ -178,7 +178,6 @@ class CorelessInputRouterTest {
         assertEquals(1, router.rawEvents().size());
         assertTrue(router.interpretedEvents().isEmpty());
     }
-}
 
     @Test
     void rejectsBackwardsTimestampsWithoutMutatingRawHistory() {
@@ -193,3 +192,4 @@ class CorelessInputRouterTest {
         assertEquals(1, router.rawEvents().size());
         assertEquals(9, router.rawEvents().get(0).sequence());
     }
+}
