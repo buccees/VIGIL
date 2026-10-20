@@ -179,3 +179,17 @@ class CorelessInputRouterTest {
         assertTrue(router.interpretedEvents().isEmpty());
     }
 }
+
+    @Test
+    void rejectsBackwardsTimestampsWithoutMutatingRawHistory() {
+        CorelessInputRouter router = new CorelessInputRouter(null, false);
+        router.submit(pointer(9), designatedPointer());
+        CorelessInputEvent outOfOrder = new CorelessInputEvent(
+                1, InputEventKind.POINTER_MOVE, "arduino-1", 1_008, 10,
+                CoordinateFrame.HOST, 1.0, 1.0, null, null, null, Map.of());
+
+        assertThrows(IllegalArgumentException.class,
+                () -> router.submit(outOfOrder, designatedPointer()));
+        assertEquals(1, router.rawEvents().size());
+        assertEquals(9, router.rawEvents().get(0).sequence());
+    }
