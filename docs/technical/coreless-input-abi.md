@@ -20,7 +20,7 @@ The Java contract and JSON-library-neutral field codec are implemented under com
 | contact_id | contactId | Optional touch contact identifier |
 | pressure | pressure | Optional finite numeric value; units are device-defined unless separately negotiated |
 | button | button | Optional button identifier |
-| metadata | metadata | Supplemental metadata; not an authority grant |
+| metadata | metadata | Supplemental JSON-compatible metadata, recursively snapshotted and immutable; not an authority grant |
 
 Unknown ABI versions, unknown event/frame enum values, malformed required fields, malformed optional field types, and non-finite coordinates must be rejected before raw-event history is mutated.
 
@@ -46,3 +46,8 @@ If interpretation fails, the bridge records a diagnostic and returns no derived 
 4. Coreless remains responsible for delivery to GUI/applications and for any authorization-sensitive operation.
 
 The deterministic JUnit tests cover ABI and coordinate validation, device mismatch, non-designated interactive input, capability mismatch, monotonic sequence ordering, derived-event provenance, interpreter unavailability/failure, and device-state handling.
+
+
+## Metadata integrity
+
+The raw-event and interpreted-event records recursively copy and freeze nested maps and lists. The encoder emits a detached JSON-native copy, so it does not expose mutable internals to a serializer and post-construction mutation of the source payload cannot rewrite the event history.
