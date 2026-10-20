@@ -297,3 +297,27 @@ VIGIL's existing spatial intelligence pipeline remains authoritative for environ
 ComfyUI is not part of this Coreless/VIGIL integration.
 
 Coreless AI/model work, Qwen3 work, persistent-storage work, and VIGIL integration remain part of the broader Coreless development effort where applicable. ComfyUI remains separate.
+
+
+## Coreless input adapter implementation checkpoint — 2026-10-20
+
+The feature branch feature/coreless-input-contract now contains an initial Java 17 contract in com.buccees.vigil.input:
+
+- versioned Coreless ABI v1 event kinds and coordinate frames with wire-compatible values;
+- a JSON-library-neutral field codec for snake_case ABI fields, including nullable optionals and strict malformed-field rejection;
+- validated immutable raw-event envelopes;
+- negotiated device context and capability checks;
+- provenance-bearing interpreted events;
+- an optional interpreter interface and raw-preserving router;
+- deterministic tests for validation, device assignment, per-device monotonic sequence and timestamp ordering, codec round-trip, provenance, interpreter outage, and raw-only fallback.
+
+This is an integration contract, not a new physical input or execution authority. Coreless still owns device discovery, assignment, raw input transport, and application delivery. The VIGIL adapter consumes only the currently negotiated event and device context. The implementation remains separate from the default branch pending review. CI passed on the current feature-branch tip; PR #15 remains open, draft, and unmerged.
+
+Cross-repository acceptance should verify that Coreless InputEvent fields map one-to-one to CorelessInputEvent, while VIGIL-derived events remain separate records and never overwrite raw input.
+
+
+## Deep metadata integrity checkpoint — 2026-10-20
+
+The Coreless ABI records now recursively snapshot JSON-compatible metadata into immutable maps/lists, including nested payloads, and the field codec produces a separate JSON-native copy when encoding. This prevents caller mutation of nested payload arrays/maps from changing recorded raw evidence or derived provenance after construction.
+
+The matching Coreless Python reference implementation has the same deep-snapshot behavior, with deterministic tests for nested mutation attempts and encode/decode round-trip. The physical Arduino path remains pending actual hardware, and the Coreless Python runtime is not yet connected to this Java adapter over a live cross-process transport.
