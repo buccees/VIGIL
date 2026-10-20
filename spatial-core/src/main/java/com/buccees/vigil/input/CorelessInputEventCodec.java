@@ -64,7 +64,7 @@ public final class CorelessInputEventCodec {
         fields.put("contact_id", event.contactId());
         fields.put("pressure", event.pressure());
         fields.put("button", event.button());
-        fields.put("metadata", event.metadata());
+        fields.put("metadata", MetadataSnapshot.toJsonValue(event.metadata()));
         return Collections.unmodifiableMap(fields);
     }
 
