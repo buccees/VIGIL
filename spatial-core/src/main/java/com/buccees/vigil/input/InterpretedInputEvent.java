@@ -39,16 +39,7 @@ public record InterpretedInputEvent(
             }
             previous = sequence;
         }
-        Map<String, Object> copy = new LinkedHashMap<>();
-        if (metadata != null) {
-            metadata.forEach((key, value) -> {
-                if (key == null || key.isBlank()) {
-                    throw new IllegalArgumentException("metadata keys must not be blank");
-                }
-                copy.put(key, value);
-            });
-        }
-        metadata = Collections.unmodifiableMap(copy);
+        metadata = MetadataSnapshot.freezeMap(metadata);
         if (confidence != null && (!Double.isFinite(confidence) || confidence < 0.0 || confidence > 1.0)) {
             throw new IllegalArgumentException("confidence must be finite and between 0 and 1");
         }
