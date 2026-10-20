@@ -51,15 +51,6 @@ public record CorelessInputEvent(
         if (pressure != null && !Double.isFinite(pressure)) {
             throw new IllegalArgumentException("pressure must be finite");
         }
-        Map<String, Object> copy = new LinkedHashMap<>();
-        if (metadata != null) {
-            metadata.forEach((key, value) -> {
-                if (key == null || key.isBlank()) {
-                    throw new IllegalArgumentException("metadata keys must not be blank");
-                }
-                copy.put(key, value);
-            });
-        }
-        metadata = Collections.unmodifiableMap(copy);
+        metadata = MetadataSnapshot.freezeMap(metadata);
     }
 }
