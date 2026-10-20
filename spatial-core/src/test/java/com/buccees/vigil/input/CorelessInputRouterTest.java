@@ -192,9 +192,6 @@ class CorelessInputRouterTest {
         assertEquals(1, router.rawEvents().size());
         assertEquals(9, router.rawEvents().get(0).sequence());
     }
-}
-
-
 
     @Test
     void staleAssignmentContextCannotUndoANewerGeneration() {
@@ -224,3 +221,4 @@ class CorelessInputRouterTest {
                 () -> router.submit(pointer(2), mutatedSameGeneration));
         assertEquals(1, router.rawEvents().size());
     }
+}
