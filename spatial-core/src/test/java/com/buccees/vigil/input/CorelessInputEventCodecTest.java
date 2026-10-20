@@ -50,22 +50,19 @@ class CorelessInputEventCodecTest {
 
     @Test
     void rejectsStringIntegersMalformedMetadataAndNonFiniteCoordinates() {
-        Map<String, Object> fields = minimalFields();
-        fields.put("sequence", "4");
-        assertThrows(IllegalArgumentException.class, () -> CorelessInputEventCodec.decode(fields));
+        Map<String, Object> stringInteger = minimalFields();
+        stringInteger.put("sequence", "4");
+        assertThrows(IllegalArgumentException.class, () -> CorelessInputEventCodec.decode(stringInteger));
 
-        fields = minimalFields();
-        fields.put("metadata", "not-an-object");
-        Map<String, Object> stringMetadata = fields;
+        Map<String, Object> stringMetadata = minimalFields();
+        stringMetadata.put("metadata", "not-an-object");
         assertThrows(IllegalArgumentException.class, () -> CorelessInputEventCodec.decode(stringMetadata));
 
-        fields = minimalFields();
-        fields.put("x", Double.POSITIVE_INFINITY);
-        fields.put("y", 1.0);
-        Map<String, Object> nonFinite = fields;
+        Map<String, Object> nonFinite = minimalFields();
+        nonFinite.put("x", Double.POSITIVE_INFINITY);
+        nonFinite.put("y", 1.0);
         assertThrows(IllegalArgumentException.class, () -> CorelessInputEventCodec.decode(nonFinite));
     }
-
     private static Map<String, Object> minimalFields() {
         Map<String, Object> fields = new LinkedHashMap<>();
         fields.put("abi_version", 1);
