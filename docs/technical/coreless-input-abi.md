@@ -4,7 +4,7 @@
 
 Coreless is authoritative for host input transport, physical-device discovery, user designation, event ordering, persistence, and raw application delivery. VIGIL is an optional interpreter of already-validated Coreless events. This adapter cannot designate physical devices, invent missing hardware capabilities, or authorize Coreless actions.
 
-The Java contract is implemented under com.buccees.vigil.input in the feature/coreless-input-contract branch.
+The Java contract and JSON-library-neutral field codec are implemented under com.buccees.vigil.input in the feature/coreless-input-contract branch. CorelessInputEventCodec maps the snake_case ABI to immutable Java records and back, preserving nullable optional fields.
 
 ## Raw event mapping
 
@@ -13,8 +13,8 @@ The Java contract is implemented under com.buccees.vigil.input in the feature/co
 | abi_version | abiVersion | Must be exactly 1 |
 | event_type | eventType | Wire values: pointer_move, pointer_button, touch_begin, touch_update, touch_end, stylus, device_state |
 | device_id | deviceId | Non-blank logical Coreless device identifier |
-| timestamp_ns | timestampNs | Non-negative monotonic timestamp in nanoseconds |
-| sequence | sequence | Non-negative, strictly increasing for each device |
+| timestamp_ns | timestampNs | Non-negative monotonic timestamp; non-decreasing per device |
+| sequence | sequence | Non-negative, strictly increasing per device |
 | coordinate_frame | coordinateFrame | One of host, coreless, display, vigil |
 | x, y | x, y | Both absent or both present; values must be finite |
 | contact_id | contactId | Optional touch contact identifier |
@@ -22,7 +22,7 @@ The Java contract is implemented under com.buccees.vigil.input in the feature/co
 | button | button | Optional button identifier |
 | metadata | metadata | Supplemental metadata; not an authority grant |
 
-Unknown ABI versions and malformed required fields must be rejected before raw-event history is mutated.
+Unknown ABI versions, unknown event/frame enum values, malformed required fields, malformed optional field types, and non-finite coordinates must be rejected before raw-event history is mutated.
 
 ## Device context
 
