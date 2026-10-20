@@ -19,6 +19,7 @@ public final class CorelessInputRouter {
     private final List<CorelessInputEvent> rawEvents = new ArrayList<>();
     private final List<InterpretedInputEvent> interpretedEvents = new ArrayList<>();
     private final Map<String, Long> lastSequenceByDevice = new HashMap<>();
+    private final Map<String, Long> lastTimestampByDevice = new HashMap<>();
     private boolean interpretationEnabled;
     private String lastInterpretationFailure;
 
@@ -71,10 +72,15 @@ public final class CorelessInputRouter {
         if (previous != null && event.sequence() <= previous) {
             throw new IllegalArgumentException("input sequence must increase monotonically per device");
         }
+        Long previousTimestamp = lastTimestampByDevice.get(event.deviceId());
+        if (previousTimestamp != null && event.timestampNs() < previousTimestamp) {
+            throw new IllegalArgumentException("input timestamp must not move backwards per device");
+        }
 
         // The raw event is the authority. Record it before consulting optional VIGIL.
         rawEvents.add(event);
         lastSequenceByDevice.put(event.deviceId(), event.sequence());
+        lastTimestampByDevice.put(event.deviceId(), event.timestampNs());
 
         if (event.eventType() == InputEventKind.DEVICE_STATE
                 || !interpretationEnabled || interpreter == null) {
