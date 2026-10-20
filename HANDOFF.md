@@ -297,3 +297,19 @@ VIGIL's existing spatial intelligence pipeline remains authoritative for environ
 ComfyUI is not part of this Coreless/VIGIL integration.
 
 Coreless AI/model work, Qwen3 work, persistent-storage work, and VIGIL integration remain part of the broader Coreless development effort where applicable. ComfyUI remains separate.
+
+
+## Coreless input adapter implementation checkpoint — 2026-10-20
+
+The feature branch feature/coreless-input-contract now contains an initial Java 17 contract in com.buccees.vigil.input:
+
+- versioned Coreless ABI v1 event kinds and coordinate frames with wire-compatible values;
+- validated immutable raw-event envelopes;
+- negotiated device context and capability checks;
+- provenance-bearing interpreted events;
+- an optional interpreter interface and raw-preserving router;
+- deterministic tests for validation, device assignment, monotonic sequence ordering, provenance, interpreter outage, and raw-only fallback.
+
+This is an integration contract, not a new physical input or execution authority. Coreless still owns device discovery, assignment, raw input transport, and application delivery. The VIGIL adapter consumes only the currently negotiated event and device context. The implementation is intentionally separate from the default branch until its CI passes and the PR is reviewed.
+
+Cross-repository acceptance should verify that Coreless InputEvent fields map one-to-one to CorelessInputEvent, while VIGIL-derived events remain separate records and never overwrite raw input.
