@@ -63,6 +63,23 @@ class CorelessInputEventCodecTest {
         nonFinite.put("y", 1.0);
         assertThrows(IllegalArgumentException.class, () -> CorelessInputEventCodec.decode(nonFinite));
     }
+    @Test
+    void rawEventMetadataIsCopiedAndReadOnly() {
+        Map<String, Object> metadata = new LinkedHashMap<>();
+        metadata.put("source", "coreless");
+        CorelessInputEvent event = new CorelessInputEvent(
+                1, InputEventKind.POINTER_MOVE, "mouse-0", 1, 1,
+                CoordinateFrame.HOST, 1.0, 2.0, null, null, null, metadata);
+
+        metadata.put("source", "mutated");
+        metadata.put("added", true);
+
+        assertEquals("coreless", event.metadata().get("source"));
+        assertFalse(event.metadata().containsKey("added"));
+        assertThrows(UnsupportedOperationException.class,
+                () -> event.metadata().put("source", "tampered"));
+    }
+
     private static Map<String, Object> minimalFields() {
         Map<String, Object> fields = new LinkedHashMap<>();
         fields.put("abi_version", 1);
