@@ -1,5 +1,6 @@
 package com.buccees.vigil.input;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -64,7 +65,7 @@ public final class CorelessInputEventCodec {
         fields.put("pressure", event.pressure());
         fields.put("button", event.button());
         fields.put("metadata", event.metadata());
-        return Map.copyOf(fields);
+        return Collections.unmodifiableMap(fields);
     }
 
     private static String requiredString(Map<String, ?> fields, String key) {
