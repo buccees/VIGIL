@@ -193,3 +193,34 @@ class CorelessInputRouterTest {
         assertEquals(9, router.rawEvents().get(0).sequence());
     }
 }
+
+
+
+    @Test
+    void staleAssignmentContextCannotUndoANewerGeneration() {
+        CorelessInputRouter router = new CorelessInputRouter(null, false);
+        InputDeviceContext generationThree = designatedPointer();
+        InputDeviceContext generationFour = new InputDeviceContext(
+                "arduino-1", "serial-pointer", Set.of("pointer", "absolute"), true, 4);
+
+        router.submit(pointer(1), generationThree);
+        router.submit(pointer(2), generationFour);
+
+        assertThrows(SecurityException.class,
+                () -> router.submit(pointer(3), generationThree));
+        assertEquals(2, router.rawEvents().size());
+        assertEquals(2, router.rawEvents().get(1).sequence());
+    }
+
+
+    @Test
+    void assignmentContextCannotChangeWithoutGenerationIncrement() {
+        CorelessInputRouter router = new CorelessInputRouter(null, false);
+        router.submit(pointer(1), designatedPointer());
+        InputDeviceContext mutatedSameGeneration = new InputDeviceContext(
+                "arduino-1", "serial-pointer", Set.of("pointer"), true, 3);
+
+        assertThrows(SecurityException.class,
+                () -> router.submit(pointer(2), mutatedSameGeneration));
+        assertEquals(1, router.rawEvents().size());
+    }
