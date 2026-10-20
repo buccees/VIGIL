@@ -20,6 +20,7 @@ public final class CorelessInputRouter {
     private final List<InterpretedInputEvent> interpretedEvents = new ArrayList<>();
     private final Map<String, Long> lastSequenceByDevice = new HashMap<>();
     private final Map<String, Long> lastTimestampByDevice = new HashMap<>();
+    private final Map<String, InputDeviceContext> lastDeviceContextByDevice = new HashMap<>();
     private boolean interpretationEnabled;
     private String lastInterpretationFailure;
 
@@ -61,6 +62,22 @@ public final class CorelessInputRouter {
         }
         if (!event.deviceId().equals(device.deviceId())) {
             throw new SecurityException("event device does not match Coreless device context");
+        }
+        InputDeviceContext previousContext = lastDeviceContextByDevice.get(device.deviceId());
+        if (previousContext != null) {
+            if (device.assignmentGeneration() < previousContext.assignmentGeneration()) {
+                throw new SecurityException("stale Coreless device assignment generation");
+            }
+            if (device.assignmentGeneration() == previousContext.assignmentGeneration()
+                    && !device.equals(previousContext)) {
+                throw new SecurityException("device context changed without assignment generation increment");
+            }
+        }
+        // The newer assignment context must supersede older contexts even when
+        // the accompanying event is later rejected by capability or ordering checks.
+        if (previousContext == null
+                || device.assignmentGeneration() > previousContext.assignmentGeneration()) {
+            lastDeviceContextByDevice.put(device.deviceId(), device);
         }
         if (!device.supports(event.eventType())) {
             throw new IllegalArgumentException("event type is not supported by device capabilities");
